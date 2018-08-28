@@ -1,0 +1,14 @@
+.file { color : green; cursor:pointer; }
+.folder { 
+  padding:2px; 
+  background: rgb(195, 230, 243);
+  margin:1px;
+  color:blue;
+  cursor:pointer;
+}
+.folder:hover { text-decoration: underline }
+.editor { display: flex; }
+.acecontainer {  }
+.filebrowser { min-width: 200px; }
+
+.incomplete { background: gray; color:white;}

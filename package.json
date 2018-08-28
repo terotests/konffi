@@ -1,0 +1,30 @@
+{
+  "name": "konffi",
+  "version": "1.0.0",
+  "description": "konffi",
+  "main": "index.js",
+  "scripts": {
+    "test": "find ./dist/ -name \"*.d.ts\" -delete && tsc && ./node_modules/.bin/mocha dist/test/ --recursive --reporter spec",
+    "build:ts": "tsc --declaration false",
+    "build:browserify": "browserify ./dist/src/client.js -o ./static/bundle.js",
+    "build": "npm run build:ts && npm run build:browserify",
+    "start": "npm run build && node dist/src/server.js"
+  },
+  "keywords": [],
+  "author": "Tero Tolonen",
+  "license": "MIT",
+  "dependencies": {
+    "@types/ace": "0.0.40",
+    "@types/chai": "^4.1.4",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.5.6",
+    "axios": "^0.18.0",
+    "doremifa": "^1.0.20",
+    "express": "^4.16.3",
+    "typescript": "^3.0.1"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.2.0"
+  }
+}
