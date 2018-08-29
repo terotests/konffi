@@ -13,33 +13,16 @@ import {
 } from './editors'
 
 import * as UI from './editors/ui'
+import {
+  createAceContainer,
+  getAceHolder
+} from './editors/ace'
+import { updateAceEditor } from './editors/ace'
 
 const html = Doremifa.html;
 const setState = Doremifa.setState
 const getState = Doremifa.getState
 let rootFolder : ServerFile = null
-
-// <div id="editor1container" style="flex:1;display:flex;"><div id="editor1" style="flex:1;"></div></div>
-
-interface ACEContainer {
-  aceDOMContainer : HTMLElement
-  aceDOM : HTMLElement
-}
-
-const createAceContainer = () : ACEContainer => {
-  let aceDOMContainer = document.createElement('div')
-  let aceDOM =  document.createElement('div')
-  aceDOM.setAttribute('style', 'flex:1;')
-  aceDOMContainer.setAttribute('style', 'flex:1;display:flex;')
-  aceDOMContainer.appendChild( aceDOM )
-  document.body.appendChild( aceDOMContainer )
-  return {
-    aceDOMContainer,
-    aceDOM
-  }
-}
-
-const aceHolder = createAceContainer()
 
 Doremifa.setState({
   loaded : false,
@@ -61,60 +44,10 @@ console.log(JSON.stringify([
 ], null, 2))
 
 // OK, these could be in state too...
-let aceEditor = null
 let projectList = null
-let settingValue = false
 const fileIds = {}
 
 // simple example of editors...
-
-
-const aceState = {
-  fileid : '',
-}
-
-const updateAceEditor = () => {
-  const theFile = getCurrentFile()
-  if(!theFile) return
-  if(theFile.id === aceState.fileid ) return
-
-  aceState.fileid  = theFile.id
-
-  const meta = getFileMetadata()
-
-  if(meta && meta.editor) {
-    aceHolder.aceDOMContainer.style.display = 'none'
-  } else {
-    aceHolder.aceDOMContainer.style.display = 'block'
-  }
-
-  const item = theFile
-  if(aceEditor && theFile) {
-    aceEditor.setValue( theFile.contents, 1 )
-    aceEditor.resize()
-    settingValue = false
-
-    // the cursor position for the file ??? 
-    if(theFile.cursorPosition) {
-      const cursor = theFile.cursorPosition
-      aceEditor.focus();
-      aceEditor.gotoLine(cursor.row + 1, cursor.column, true);              
-    }     
-    switch( item.exttype ) {
-      case ".ts":
-        aceEditor.session.setMode("ace/mode/typescript");
-        break
-      case ".md":
-      aceEditor.session.setMode("ace/mode/markdown");
-        break
-      default:
-        aceEditor.session.setMode("ace/mode/typescript");
-    }
-    aceEditor.setOptions({
-        maxLines: 30
-    });              
-  }  
-}
 
 const usedEditors = {
   "tables" : UI.tablesView,
@@ -269,16 +202,9 @@ const loadEditor = debounce(200, async () => {
 // The Ace editor container..
 let aceContainer = html`<div class="editor" id="editorHolder"
   style=${`flex:1;height:${window.innerHeight}`}></div>`.onReady( (tpl) => {
-    console.log('container @ ready ')
-    console.log(tpl)
+    const aceHolder = getAceHolder()
     tpl.ids.editorHolder.appendChild( aceHolder.aceDOMContainer )
-
-    if(aceEditor) {
-      aceEditor.resize()
-    }
-    // console.log('onReady at aceContainer ', tpl)
   });
-
 
 // 
 const editJSON = ( strdata ) => {
@@ -313,9 +239,8 @@ const editJSON = ( strdata ) => {
   return html`<pre>${JSON.stringify(data, null, 2)}</pre>`
 }
 
-// currently default editor === n
 const defaultEditor = ( (state) => {
-  return html`<div style="border:1px solid blue;">container : ${aceContainer}</div>`
+  return html`<div>${aceContainer}</div>`
 })
 
 const editorArea = (state) => {
@@ -329,7 +254,7 @@ const editorArea = (state) => {
   const editorFn = usedEditors[editorName] || defaultEditor
   
   // update the ace
-  updateAceEditor()
+  updateAceEditor( getCurrentFile() )
 
   return html`
 <div style=${`flex:1;height:${window.innerHeight}`}>
@@ -363,13 +288,7 @@ const editorArea = (state) => {
     }} >Refresh</button>
 
   </div>
-  <div>
-    ${ ( fileMeta && fileMeta.editor) || 'no editor defined' }
-  </div>
-  <div>
-    ${fileMeta ? fileMeta.info : ''}
-  </div>
-    ${editorFn(state)} 
+  ${editorFn(state)} 
 </div>
   `.onReady( tpl => {  
 
@@ -388,38 +307,3 @@ Doremifa.mount(document.body, state => html`
   </div>
   ${editorArea(state)}
 </div>`.onReady(loadEditor));
-
-// setInterval( _ => { setState({time:(new Date).toTimeString()})},1000)  
-
-// Editor must be placed into an existing DOM element
-aceEditor = ace.edit(aceHolder.aceDOM);
-aceEditor.setTheme("ace/theme/monokai");
-aceEditor.session.setMode("ace/mode/typescript");
-
-// problem: also fired when setValue() is called
-aceEditor.getSession().on('change', function() {
-
-  const state = Doremifa.getState()
-  const strnow = aceEditor.getValue()
-
-  const currentFile = getCurrentFile()
-
-  // TODO: handle better...
-  if(currentFile && !settingValue) {
-
-    currentFile.contents = strnow
-    currentFile.cursorPosition = aceEditor.getCursorPosition()
-    // state.files[currentFile.id].contents = strnow
-    // state.files[currentFile.id].cursorPosition = aceEditor.getCursorPosition()
-  }
-  if(currentFile && !settingValue) {
-    setState({currentFile:{
-      ...state.currentFile,
-      contents : strnow
-    }})  
-  } else {
-    console.log('did not set state for editor change... settingValue', settingValue)
-    console.log(state)
-  }
-});
-  

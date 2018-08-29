@@ -45,10 +45,9 @@ exports.boxesView = function (state) {
         });
         return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     }
-    // These items should be in the state...
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["\n<div>\n    <h4>Boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>Boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
+    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
         ">+ box</button>\n    <button onclick=",
         ">Update</button>\n     ",
         "\n\n      ",

@@ -36,8 +36,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var server_1 = require("./fs/server");
-// Interesting:
-// https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
 function _start_server() {
     var _this = this;
     var express = require('express');
@@ -103,9 +101,7 @@ function _start_server() {
         var project, _a, _b;
         return __generator(this, function (_c) {
             switch (_c.label) {
-                case 0:
-                    console.log('at savefile...');
-                    return [4 /*yield*/, server_1.findProject(req.params.id)];
+                case 0: return [4 /*yield*/, server_1.findProject(req.params.id)];
                 case 1:
                     project = _c.sent();
                     _b = (_a = res).json;

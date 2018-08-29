@@ -1,7 +1,7 @@
 
 # Project konffi...! :=)
 
-Konffi adds 
+Konffi implements
 
 - metadata to the directory (like Git) files
 - implements UI to modify files based on the metadata

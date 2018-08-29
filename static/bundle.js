@@ -56,23 +56,12 @@ var Doremifa = require("doremifa");
 var axios_1 = require("axios");
 var editors_1 = require("./editors");
 var UI = require("./editors/ui");
+var ace_1 = require("./editors/ace");
+var ace_2 = require("./editors/ace");
 var html = Doremifa.html;
 var setState = Doremifa.setState;
 var getState = Doremifa.getState;
 var rootFolder = null;
-var createAceContainer = function () {
-    var aceDOMContainer = document.createElement('div');
-    var aceDOM = document.createElement('div');
-    aceDOM.setAttribute('style', 'flex:1;');
-    aceDOMContainer.setAttribute('style', 'flex:1;display:flex;');
-    aceDOMContainer.appendChild(aceDOM);
-    document.body.appendChild(aceDOMContainer);
-    return {
-        aceDOMContainer: aceDOMContainer,
-        aceDOM: aceDOM
-    };
-};
-var aceHolder = createAceContainer();
 Doremifa.setState({
     loaded: false,
     editorBinded: false,
@@ -91,54 +80,9 @@ console.log(JSON.stringify([
     { x: 50, y: 50, color: "orange", width: 44, height: 44 },
 ], null, 2));
 // OK, these could be in state too...
-var aceEditor = null;
 var projectList = null;
-var settingValue = false;
 var fileIds = {};
 // simple example of editors...
-var aceState = {
-    fileid: '',
-};
-var updateAceEditor = function () {
-    var theFile = editors_1.getCurrentFile();
-    if (!theFile)
-        return;
-    if (theFile.id === aceState.fileid)
-        return;
-    aceState.fileid = theFile.id;
-    var meta = editors_1.getFileMetadata();
-    if (meta && meta.editor) {
-        aceHolder.aceDOMContainer.style.display = 'none';
-    }
-    else {
-        aceHolder.aceDOMContainer.style.display = 'block';
-    }
-    var item = theFile;
-    if (aceEditor && theFile) {
-        aceEditor.setValue(theFile.contents, 1);
-        aceEditor.resize();
-        settingValue = false;
-        // the cursor position for the file ??? 
-        if (theFile.cursorPosition) {
-            var cursor = theFile.cursorPosition;
-            aceEditor.focus();
-            aceEditor.gotoLine(cursor.row + 1, cursor.column, true);
-        }
-        switch (item.exttype) {
-            case ".ts":
-                aceEditor.session.setMode("ace/mode/typescript");
-                break;
-            case ".md":
-                aceEditor.session.setMode("ace/mode/markdown");
-                break;
-            default:
-                aceEditor.session.setMode("ace/mode/typescript");
-        }
-        aceEditor.setOptions({
-            maxLines: 30
-        });
-    }
-};
 var usedEditors = {
     "tables": UI.tablesView,
     "boxes": UI.boxesView,
@@ -297,13 +241,8 @@ var loadEditor = debounce(200, function () { return __awaiter(_this, void 0, voi
 }); });
 // The Ace editor container..
 var aceContainer = html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
-    console.log('container @ ready ');
-    console.log(tpl);
+    var aceHolder = ace_1.getAceHolder();
     tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
-    if (aceEditor) {
-        aceEditor.resize();
-    }
-    // console.log('onReady at aceContainer ', tpl)
 });
 // 
 var editJSON = function (strdata) {
@@ -329,9 +268,8 @@ var editJSON = function (strdata) {
     }
     return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<pre>", "</pre>"], ["<pre>", "</pre>"])), JSON.stringify(data, null, 2));
 };
-// currently default editor === n
 var defaultEditor = (function (state) {
-    return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<div style=\"border:1px solid blue;\">container : ", "</div>"], ["<div style=\"border:1px solid blue;\">container : ", "</div>"])), aceContainer);
+    return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
 });
 var editorArea = function (state) {
     if (!state.loaded) {
@@ -341,11 +279,11 @@ var editorArea = function (state) {
     var editorName = (fileMeta && fileMeta.editor) || '';
     var editorFn = usedEditors[editorName] || defaultEditor;
     // update the ace
-    updateAceEditor();
-    return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  <div>\n    ", "\n  </div>\n  <div>\n    ", "\n  </div>\n    ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
+    ace_2.updateAceEditor(editors_1.getCurrentFile());
+    return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
         ">Save Me!</button>\n\n    <button onclick=",
         ">Save info of current file</button>\n\n    <button onclick=",
-        " >Refresh</button>\n\n  </div>\n  <div>\n    ", "\n  </div>\n  <div>\n    ", "\n  </div>\n    ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
+        " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
         var currentFile, res;
         return __generator(this, function (_a) {
             switch (_a.label) {
@@ -385,7 +323,7 @@ var editorArea = function (state) {
             refreshData();
             return [2 /*return*/];
         });
-    }); }, (fileMeta && fileMeta.editor) || 'no editor defined', fileMeta ? fileMeta.info : '', editorFn(state)).onReady(function (tpl) {
+    }); }, editorFn(state)).onReady(function (tpl) {
     });
 };
 // main HTML...
@@ -394,16 +332,93 @@ Doremifa.mount(document.body, function (state) { return html(templateObject_14 |
     "\n  </div>\n  ", "\n</div>"])), Doremifa.router({
     file: showFiles
 }), editorArea(state)).onReady(loadEditor); });
-// setInterval( _ => { setState({time:(new Date).toTimeString()})},1000)  
-// Editor must be placed into an existing DOM element
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
+
+},{"./editors":3,"./editors/ace":2,"./editors/ui":4,"axios":5,"doremifa":30}],2:[function(require,module,exports){
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var Doremifa = require("doremifa");
+var _1 = require(".");
+var aceState = {
+    fileid: '',
+};
+exports.createAceContainer = function () {
+    var aceDOMContainer = document.createElement('div');
+    var aceDOM = document.createElement('div');
+    aceDOM.setAttribute('style', 'flex:1;');
+    aceDOMContainer.setAttribute('style', 'flex:1;display:flex;');
+    aceDOMContainer.appendChild(aceDOM);
+    document.body.appendChild(aceDOMContainer);
+    return {
+        aceDOMContainer: aceDOMContainer,
+        aceDOM: aceDOM
+    };
+};
+// only one ace editor for now...
+var aceEditor = null;
+var settingValue = false;
+var aceHolder = exports.createAceContainer();
+exports.getAceHolder = function () {
+    return aceHolder;
+};
+// The ACE editor updater
+exports.updateAceEditor = function (theFile) {
+    if (!theFile)
+        return;
+    if (theFile.id === aceState.fileid)
+        return;
+    aceState.fileid = theFile.id;
+    var meta = _1.getFileMetadata();
+    if (meta && meta.editor) {
+        aceHolder.aceDOMContainer.style.display = 'none';
+    }
+    else {
+        aceHolder.aceDOMContainer.style.display = 'block';
+    }
+    var item = theFile;
+    if (aceEditor && theFile) {
+        aceEditor.setValue(theFile.contents, 1);
+        aceEditor.resize();
+        settingValue = false;
+        // the cursor position for the file ??? 
+        if (theFile.cursorPosition) {
+            var cursor = theFile.cursorPosition;
+            aceEditor.focus();
+            aceEditor.gotoLine(cursor.row + 1, cursor.column, true);
+        }
+        switch (item.exttype) {
+            case ".ts":
+                aceEditor.session.setMode("ace/mode/typescript");
+                break;
+            case ".md":
+                aceEditor.session.setMode("ace/mode/markdown");
+                break;
+            default:
+                aceEditor.session.setMode("ace/mode/typescript");
+        }
+        aceEditor.setOptions({
+            maxLines: 30
+        });
+    }
+};
 aceEditor = ace.edit(aceHolder.aceDOM);
 aceEditor.setTheme("ace/theme/monokai");
 aceEditor.session.setMode("ace/mode/typescript");
-// problem: also fired when setValue() is called
 aceEditor.getSession().on('change', function () {
     var state = Doremifa.getState();
     var strnow = aceEditor.getValue();
-    var currentFile = editors_1.getCurrentFile();
+    var currentFile = _1.getCurrentFile();
     // TODO: handle better...
     if (currentFile && !settingValue) {
         currentFile.contents = strnow;
@@ -412,16 +427,15 @@ aceEditor.getSession().on('change', function () {
         // state.files[currentFile.id].cursorPosition = aceEditor.getCursorPosition()
     }
     if (currentFile && !settingValue) {
-        setState({ currentFile: __assign({}, state.currentFile, { contents: strnow }) });
+        Doremifa.setState({ currentFile: __assign({}, state.currentFile, { contents: strnow }) });
     }
     else {
         console.log('did not set state for editor change... settingValue', settingValue);
         console.log(state);
     }
 });
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
 
-},{"./editors":2,"./editors/ui":3,"axios":4,"doremifa":29}],2:[function(require,module,exports){
+},{".":3,"doremifa":30}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
@@ -488,7 +502,7 @@ exports.getFileMetadata = function () {
     return metaData;
 };
 
-},{"doremifa":29}],3:[function(require,module,exports){
+},{"doremifa":30}],4:[function(require,module,exports){
 "use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
@@ -536,10 +550,9 @@ exports.boxesView = function (state) {
         });
         return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     }
-    // These items should be in the state...
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["\n<div>\n    <h4>Boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>Boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
+    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
         ">+ box</button>\n    <button onclick=",
         ">Update</button>\n     ",
         "\n\n      ",
@@ -648,9 +661,9 @@ exports.tsConfigView = function (state) {
 };
 var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12;
 
-},{".":2,"doremifa":29}],4:[function(require,module,exports){
+},{".":3,"doremifa":30}],5:[function(require,module,exports){
 module.exports = require('./lib/axios');
-},{"./lib/axios":6}],5:[function(require,module,exports){
+},{"./lib/axios":7}],6:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -834,7 +847,7 @@ module.exports = function xhrAdapter(config) {
 };
 
 }).call(this,require('_process'))
-},{"../core/createError":12,"./../core/settle":15,"./../helpers/btoa":19,"./../helpers/buildURL":20,"./../helpers/cookies":22,"./../helpers/isURLSameOrigin":24,"./../helpers/parseHeaders":26,"./../utils":28,"_process":32}],6:[function(require,module,exports){
+},{"../core/createError":13,"./../core/settle":16,"./../helpers/btoa":20,"./../helpers/buildURL":21,"./../helpers/cookies":23,"./../helpers/isURLSameOrigin":25,"./../helpers/parseHeaders":27,"./../utils":29,"_process":33}],7:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -888,7 +901,7 @@ module.exports = axios;
 // Allow use of default import syntax in TypeScript
 module.exports.default = axios;
 
-},{"./cancel/Cancel":7,"./cancel/CancelToken":8,"./cancel/isCancel":9,"./core/Axios":10,"./defaults":17,"./helpers/bind":18,"./helpers/spread":27,"./utils":28}],7:[function(require,module,exports){
+},{"./cancel/Cancel":8,"./cancel/CancelToken":9,"./cancel/isCancel":10,"./core/Axios":11,"./defaults":18,"./helpers/bind":19,"./helpers/spread":28,"./utils":29}],8:[function(require,module,exports){
 'use strict';
 
 /**
@@ -909,7 +922,7 @@ Cancel.prototype.__CANCEL__ = true;
 
 module.exports = Cancel;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 var Cancel = require('./Cancel');
@@ -968,14 +981,14 @@ CancelToken.source = function source() {
 
 module.exports = CancelToken;
 
-},{"./Cancel":7}],9:[function(require,module,exports){
+},{"./Cancel":8}],10:[function(require,module,exports){
 'use strict';
 
 module.exports = function isCancel(value) {
   return !!(value && value.__CANCEL__);
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 var defaults = require('./../defaults');
@@ -1056,7 +1069,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 
 module.exports = Axios;
 
-},{"./../defaults":17,"./../utils":28,"./InterceptorManager":11,"./dispatchRequest":13}],11:[function(require,module,exports){
+},{"./../defaults":18,"./../utils":29,"./InterceptorManager":12,"./dispatchRequest":14}],12:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1110,7 +1123,7 @@ InterceptorManager.prototype.forEach = function forEach(fn) {
 
 module.exports = InterceptorManager;
 
-},{"./../utils":28}],12:[function(require,module,exports){
+},{"./../utils":29}],13:[function(require,module,exports){
 'use strict';
 
 var enhanceError = require('./enhanceError');
@@ -1130,7 +1143,7 @@ module.exports = function createError(message, config, code, request, response) 
   return enhanceError(error, config, code, request, response);
 };
 
-},{"./enhanceError":14}],13:[function(require,module,exports){
+},{"./enhanceError":15}],14:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1218,7 +1231,7 @@ module.exports = function dispatchRequest(config) {
   });
 };
 
-},{"../cancel/isCancel":9,"../defaults":17,"./../helpers/combineURLs":21,"./../helpers/isAbsoluteURL":23,"./../utils":28,"./transformData":16}],14:[function(require,module,exports){
+},{"../cancel/isCancel":10,"../defaults":18,"./../helpers/combineURLs":22,"./../helpers/isAbsoluteURL":24,"./../utils":29,"./transformData":17}],15:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1241,7 +1254,7 @@ module.exports = function enhanceError(error, config, code, request, response) {
   return error;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 var createError = require('./createError');
@@ -1269,7 +1282,7 @@ module.exports = function settle(resolve, reject, response) {
   }
 };
 
-},{"./createError":12}],16:[function(require,module,exports){
+},{"./createError":13}],17:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1291,7 +1304,7 @@ module.exports = function transformData(data, headers, fns) {
   return data;
 };
 
-},{"./../utils":28}],17:[function(require,module,exports){
+},{"./../utils":29}],18:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -1391,7 +1404,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 module.exports = defaults;
 
 }).call(this,require('_process'))
-},{"./adapters/http":5,"./adapters/xhr":5,"./helpers/normalizeHeaderName":25,"./utils":28,"_process":32}],18:[function(require,module,exports){
+},{"./adapters/http":6,"./adapters/xhr":6,"./helpers/normalizeHeaderName":26,"./utils":29,"_process":33}],19:[function(require,module,exports){
 'use strict';
 
 module.exports = function bind(fn, thisArg) {
@@ -1404,7 +1417,7 @@ module.exports = function bind(fn, thisArg) {
   };
 };
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 // btoa polyfill for IE<10 courtesy https://github.com/davidchambers/Base64.js
@@ -1442,7 +1455,7 @@ function btoa(input) {
 
 module.exports = btoa;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1510,7 +1523,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
   return url;
 };
 
-},{"./../utils":28}],21:[function(require,module,exports){
+},{"./../utils":29}],22:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1526,7 +1539,7 @@ module.exports = function combineURLs(baseURL, relativeURL) {
     : baseURL;
 };
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1581,7 +1594,7 @@ module.exports = (
   })()
 );
 
-},{"./../utils":28}],23:[function(require,module,exports){
+},{"./../utils":29}],24:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1597,7 +1610,7 @@ module.exports = function isAbsoluteURL(url) {
   return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1667,7 +1680,7 @@ module.exports = (
   })()
 );
 
-},{"./../utils":28}],25:[function(require,module,exports){
+},{"./../utils":29}],26:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -1681,7 +1694,7 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
   });
 };
 
-},{"../utils":28}],26:[function(require,module,exports){
+},{"../utils":29}],27:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1736,7 +1749,7 @@ module.exports = function parseHeaders(headers) {
   return parsed;
 };
 
-},{"./../utils":28}],27:[function(require,module,exports){
+},{"./../utils":29}],28:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1765,7 +1778,7 @@ module.exports = function spread(callback) {
   };
 };
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 'use strict';
 
 var bind = require('./helpers/bind');
@@ -2070,7 +2083,7 @@ module.exports = {
   trim: trim
 };
 
-},{"./helpers/bind":18,"is-buffer":31}],29:[function(require,module,exports){
+},{"./helpers/bind":19,"is-buffer":32}],30:[function(require,module,exports){
 "use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
@@ -2992,7 +3005,7 @@ state, options) {
 exports.mount = mount;
 var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9;
 
-},{"./xmlparser":30}],30:[function(require,module,exports){
+},{"./xmlparser":31}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var index_1 = require("./index");
@@ -5635,7 +5648,7 @@ var XMLParser = /** @class */ (function () {
 }());
 exports.XMLParser = XMLParser;
 
-},{"./index":29}],31:[function(require,module,exports){
+},{"./index":30}],32:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -5658,7 +5671,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 

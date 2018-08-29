@@ -55,23 +55,12 @@ var Doremifa = require("doremifa");
 var axios_1 = require("axios");
 var editors_1 = require("./editors");
 var UI = require("./editors/ui");
+var ace_1 = require("./editors/ace");
+var ace_2 = require("./editors/ace");
 var html = Doremifa.html;
 var setState = Doremifa.setState;
 var getState = Doremifa.getState;
 var rootFolder = null;
-var createAceContainer = function () {
-    var aceDOMContainer = document.createElement('div');
-    var aceDOM = document.createElement('div');
-    aceDOM.setAttribute('style', 'flex:1;');
-    aceDOMContainer.setAttribute('style', 'flex:1;display:flex;');
-    aceDOMContainer.appendChild(aceDOM);
-    document.body.appendChild(aceDOMContainer);
-    return {
-        aceDOMContainer: aceDOMContainer,
-        aceDOM: aceDOM
-    };
-};
-var aceHolder = createAceContainer();
 Doremifa.setState({
     loaded: false,
     editorBinded: false,
@@ -90,54 +79,9 @@ console.log(JSON.stringify([
     { x: 50, y: 50, color: "orange", width: 44, height: 44 },
 ], null, 2));
 // OK, these could be in state too...
-var aceEditor = null;
 var projectList = null;
-var settingValue = false;
 var fileIds = {};
 // simple example of editors...
-var aceState = {
-    fileid: '',
-};
-var updateAceEditor = function () {
-    var theFile = editors_1.getCurrentFile();
-    if (!theFile)
-        return;
-    if (theFile.id === aceState.fileid)
-        return;
-    aceState.fileid = theFile.id;
-    var meta = editors_1.getFileMetadata();
-    if (meta && meta.editor) {
-        aceHolder.aceDOMContainer.style.display = 'none';
-    }
-    else {
-        aceHolder.aceDOMContainer.style.display = 'block';
-    }
-    var item = theFile;
-    if (aceEditor && theFile) {
-        aceEditor.setValue(theFile.contents, 1);
-        aceEditor.resize();
-        settingValue = false;
-        // the cursor position for the file ??? 
-        if (theFile.cursorPosition) {
-            var cursor = theFile.cursorPosition;
-            aceEditor.focus();
-            aceEditor.gotoLine(cursor.row + 1, cursor.column, true);
-        }
-        switch (item.exttype) {
-            case ".ts":
-                aceEditor.session.setMode("ace/mode/typescript");
-                break;
-            case ".md":
-                aceEditor.session.setMode("ace/mode/markdown");
-                break;
-            default:
-                aceEditor.session.setMode("ace/mode/typescript");
-        }
-        aceEditor.setOptions({
-            maxLines: 30
-        });
-    }
-};
 var usedEditors = {
     "tables": UI.tablesView,
     "boxes": UI.boxesView,
@@ -296,13 +240,8 @@ var loadEditor = debounce(200, function () { return __awaiter(_this, void 0, voi
 }); });
 // The Ace editor container..
 var aceContainer = html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
-    console.log('container @ ready ');
-    console.log(tpl);
+    var aceHolder = ace_1.getAceHolder();
     tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
-    if (aceEditor) {
-        aceEditor.resize();
-    }
-    // console.log('onReady at aceContainer ', tpl)
 });
 // 
 var editJSON = function (strdata) {
@@ -328,9 +267,8 @@ var editJSON = function (strdata) {
     }
     return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<pre>", "</pre>"], ["<pre>", "</pre>"])), JSON.stringify(data, null, 2));
 };
-// currently default editor === n
 var defaultEditor = (function (state) {
-    return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<div style=\"border:1px solid blue;\">container : ", "</div>"], ["<div style=\"border:1px solid blue;\">container : ", "</div>"])), aceContainer);
+    return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
 });
 var editorArea = function (state) {
     if (!state.loaded) {
@@ -340,11 +278,11 @@ var editorArea = function (state) {
     var editorName = (fileMeta && fileMeta.editor) || '';
     var editorFn = usedEditors[editorName] || defaultEditor;
     // update the ace
-    updateAceEditor();
-    return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  <div>\n    ", "\n  </div>\n  <div>\n    ", "\n  </div>\n    ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
+    ace_2.updateAceEditor(editors_1.getCurrentFile());
+    return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
         ">Save Me!</button>\n\n    <button onclick=",
         ">Save info of current file</button>\n\n    <button onclick=",
-        " >Refresh</button>\n\n  </div>\n  <div>\n    ", "\n  </div>\n  <div>\n    ", "\n  </div>\n    ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
+        " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
         var currentFile, res;
         return __generator(this, function (_a) {
             switch (_a.label) {
@@ -384,7 +322,7 @@ var editorArea = function (state) {
             refreshData();
             return [2 /*return*/];
         });
-    }); }, (fileMeta && fileMeta.editor) || 'no editor defined', fileMeta ? fileMeta.info : '', editorFn(state)).onReady(function (tpl) {
+    }); }, editorFn(state)).onReady(function (tpl) {
     });
 };
 // main HTML...
@@ -393,30 +331,5 @@ Doremifa.mount(document.body, function (state) { return html(templateObject_14 |
     "\n  </div>\n  ", "\n</div>"])), Doremifa.router({
     file: showFiles
 }), editorArea(state)).onReady(loadEditor); });
-// setInterval( _ => { setState({time:(new Date).toTimeString()})},1000)  
-// Editor must be placed into an existing DOM element
-aceEditor = ace.edit(aceHolder.aceDOM);
-aceEditor.setTheme("ace/theme/monokai");
-aceEditor.session.setMode("ace/mode/typescript");
-// problem: also fired when setValue() is called
-aceEditor.getSession().on('change', function () {
-    var state = Doremifa.getState();
-    var strnow = aceEditor.getValue();
-    var currentFile = editors_1.getCurrentFile();
-    // TODO: handle better...
-    if (currentFile && !settingValue) {
-        currentFile.contents = strnow;
-        currentFile.cursorPosition = aceEditor.getCursorPosition();
-        // state.files[currentFile.id].contents = strnow
-        // state.files[currentFile.id].cursorPosition = aceEditor.getCursorPosition()
-    }
-    if (currentFile && !settingValue) {
-        setState({ currentFile: __assign({}, state.currentFile, { contents: strnow }) });
-    }
-    else {
-        console.log('did not set state for editor change... settingValue', settingValue);
-        console.log(state);
-    }
-});
 var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
 //# sourceMappingURL=client.js.map

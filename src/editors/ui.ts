@@ -44,7 +44,6 @@ export const tablesView = (state) => {
 export const boxesView = (state) => {
 
     const file = getCurrentFile()
-
     // load items...
     if(!state.editorFilePath || state.editorFilePath !== file.path ) {
       setState({
@@ -53,15 +52,11 @@ export const boxesView = (state) => {
       })
       return html`<div></div>`
     }
-
-    // These items should be in the state...
-
     let dragged = null
     let draggedItem = null 
-
     return html`
 <div>
-    <h4>Boxes editor</h4>
+    <h4>SVG boxes editor</h4>
     Filename : ${file.path}
     <div>
     <button onclick=${()=>{

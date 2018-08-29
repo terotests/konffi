@@ -9,10 +9,6 @@ import {
   saveProjectFile,
 } from './fs/server'
 
-// Interesting:
-// https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
-
-
 function _start_server()  {
   const express = require('express');
   const app = express();
@@ -35,7 +31,6 @@ function _start_server()  {
     res.json( await readProjectFile( project, req.body.path ) )
   })
   .post('/savefile/:id', async (req,res) => {
-    console.log('at savefile...')
     const project = await findProject( req.params.id )
     res.json( await saveProjectFile( project, req.body.path, req.body.content ) )
   })
