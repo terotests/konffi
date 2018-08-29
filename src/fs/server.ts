@@ -2,12 +2,10 @@
 import { FileContent, ServerFile, ServerProject } from '../model'
 import { read } from 'fs';
 
-// 1. Project -> has also the root directory
-// 2. Files and folders
-
-
-// Remote file contents...
-
+const ignore_folders = [
+  'node_modules',
+  '.git'
+]
 const fileHash = {}
 var crypto = require('crypto');
 const createHash = (data) => crypto.createHash('md5').update(data).digest("hex")
@@ -183,7 +181,7 @@ const readProjectFolder = async (project:ServerProject, path:string, recursive =
       obj.contents = fs.readFileSync( obj.full_path, 'utf8') 
     }
 
-    if(obj.path.indexOf('node_modules') < 0 ) {      
+    if(ignore_folders.indexOf(obj.name) < 0 ) {      
       root.files.push( obj )
     }
 

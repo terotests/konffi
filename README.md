@@ -1,27 +1,17 @@
 
 # Project konffi...! :=)
 
-Toimiiko Seivaus...?!! JooHei!...
+Konffi adds 
 
-Not sure why this does not work always.
+- metadata to the directory (like Git) files
+- implements UI to modify files based on the metadata
+- runs in browser and uses Doremifa UI
 
-- One
-- Two
-- Three...
+Not every file needs to have metadata associated with it. 
 
-## Metadatan käsittelyn ongelma
+## Location of the metadata
 
-Nyt : .fmeta/meta_FILENAME
-
-Joka tiedostolla pitäisi olla ainakin
-
-- tiedoston tyyppi
-- mahdollinen projekti
-- kommentit tiedostoa koskien, luokiettelu
-- mitä kaikkea tiedosto sisältää, mihin viittaa jne.
-
-
-Ehkä tämän tiedon voisi tallettaa YAML dokumenttiin. Tai JSON dokkariin.
+For example README.md is stored into `./fmeta/README.md.fmeta`
 
 
 

@@ -190,8 +190,8 @@ function showFiles(state) {
         return html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     var files = currFolder.files;
     var sorter = function (a, fn) { return a.slice().sort(fn); };
-    return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["\n\n  <button onclick=", ">...</button>\n  <!-- the fields -->\n\n  <div>", "\n  </div>\n  "], ["\n\n  <button onclick=",
-        ">...</button>\n  <!-- the fields -->\n\n  <div>",
+    return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["\n\n  <button onclick=", ">/</button>\n  <!-- the fields -->\n\n  <div>", "\n  </div>\n  "], ["\n\n  <button onclick=",
+        ">/</button>\n  <!-- the fields -->\n\n  <div>",
         "\n  </div>\n  "])), function () {
         window.location.hash = '#file/folderid/' + state.activeProject.folder.id;
     }, sorter(files, function (a, b) {

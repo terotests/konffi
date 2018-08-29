@@ -36,9 +36,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
-// 1. Project -> has also the root directory
-// 2. Files and folders
-// Remote file contents...
+var ignore_folders = [
+    'node_modules',
+    '.git'
+];
 var fileHash = {};
 var crypto = require('crypto');
 var createHash = function (data) { return crypto.createHash('md5').update(data).digest("hex"); };
@@ -245,7 +246,7 @@ var readProjectFolder = function (project, path, recursive, parent) {
                 if (obj.is_file) {
                     obj.contents = fs.readFileSync(obj.full_path, 'utf8');
                 }
-                if (obj.path.indexOf('node_modules') < 0) {
+                if (ignore_folders.indexOf(obj.name) < 0) {
                     root.files.push(obj);
                 }
                 if (recursive && obj.is_folder) {

@@ -168,7 +168,7 @@ function showFiles( state ) {
 
   <button onclick=${()=>{
     window.location.hash = '#file/folderid/' + state.activeProject.folder.id
-  }}>...</button>
+  }}>/</button>
   <!-- the fields -->
 
   <div>${
