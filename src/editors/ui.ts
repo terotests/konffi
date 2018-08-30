@@ -7,35 +7,92 @@ import {
   getFileMetadata,
   findFile,
   findRoot,
-  forDirectory
-} from '.'
+  forDirectory,
+  collect,
+} from './api'
 
 const html = Doremifa.html;
 const setState = Doremifa.setState
 const getState = Doremifa.getState
 
-
 export const tablesView = (state) => {
     
     const file = getCurrentFile()
-    if(!file) return html`<div></div>`
-    const data = JSON.parse( file.contents )
 
+    // setting the state data...
+    if(!state.editorFilePath || state.editorFilePath !== file.path ) {
+      setState({
+        editorFilePath : file.path ,
+        data : JSON.parse( file.contents )
+      })
+      return html`<div></div>`
+    }
+
+    // The data of the current item...
+    const data = state.data
+
+    const fields = Object.keys( data.reduce((prev,current) => {
+      return {
+        ...prev,
+        ...current,
+      }
+    }, {}) );
+
+    file.contents = JSON.stringify( state.data, null, 2 )
+    
     return html`
 <div>
-    <h4>Tables editor</h4>
+    <h4>${file.name}</h4>
+
+    <button onclick=${()=>{
+      // search all files having .json
+      console.log( collect( (file, meta) => {
+        if(meta) console.log('collect meta ', meta)
+        return !!file.path.match('json')
+      }))
+    }}>Search JSON files</button>
+
     <div>
       <button onclick=${()=>{
-        data.push({name:'new row'})
+        
+        // Adding new row...
+        data.push({name:'new row', type:'string', required:'1'})
+        /*
         setState({currentFile:{
           ...file,
           contents : JSON.stringify(data, null, 2)
         }})
+        */
+
+        setState({})
+
       }}>+ row</button>
     </div>
-    ${data.map( row => {
-      return html`<div>${JSON.stringify(row)}</div>`
+
+    <table>
+    <tr>
+      <td></td>
+      ${fields.map( f => html`<td><b>${f}</b></td>`)}
+    </tr>
+    ${data.map( (row, i) => {
+      return html`<tr>
+
+        <td><button onclick=${()=>{
+          data.splice( i, 1 )
+          setState({})
+        }}>x</button></td>
+      
+        ${fields.map( field=>{
+        // different editors for different types, but for now...
+        return html`<td><input value=${row[field]} onkeyup=${
+          (e) => {
+            row[field] = e.target.value
+            setState({})
+          }
+        }/></td>`
+      })}</tr>`
     })}
+    </table>
 </div>    
     `    
   }

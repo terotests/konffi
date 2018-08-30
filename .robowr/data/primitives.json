@@ -1,0 +1,27 @@
+[
+  {
+    "name": "int",
+    "type": "",
+    "required": "1"
+  },
+  {
+    "name": "string",
+    "type": "",
+    "required": "1"
+  },
+  {
+    "name": "double",
+    "type": "",
+    "required": "1"
+  },
+  {
+    "name": "boolean",
+    "type": "",
+    "required": "1"
+  },
+  {
+    "name": "array",
+    "type": "",
+    "required": "1"
+  }
+]

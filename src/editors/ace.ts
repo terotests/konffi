@@ -7,7 +7,7 @@ import {
   findFile,
   findRoot,
   forDirectory
-} from '.'
+} from './api'
 
 const aceState = {
   fileid : '',

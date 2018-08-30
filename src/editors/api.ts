@@ -23,6 +23,19 @@ export const findRoot = ( ) : ServerFile => {
   
 }
 
+export const collect = (fn:(file:ServerFile, meta?:any) => boolean ) : ServerFile[] => {
+  const res = []
+  try {
+    // reads the active project files...
+    forFiles( getState().activeProject.folder, (file)=> {
+      if(fn(file, getFileMetadata(file))) res.push( file )
+    })  
+  } catch(e) {
+
+  }
+  return res
+}
+
 export const forDirectory = (fn:(file:ServerFile) => void ) => {
   const state = getState()
   const walk = (f:ServerFile) => {
@@ -53,10 +66,10 @@ export const getCurrentFile = () =>  {
   return findFile( getState().params.fileid )
 }
 
-export const getFileMetadata = () : any => {
+export const getFileMetadata = ( theFile?:ServerFile ) : any => {
   let metaData = null
   const state = getState()
-  const theFile = getCurrentFile()
+  theFile = theFile || getCurrentFile()
   if(!theFile) return null
   const metaname = '/.fmeta' + theFile.path + '.fmeta'
   forFiles( state.activeProject.folder, (f) => {

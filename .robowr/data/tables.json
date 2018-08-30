@@ -1,14 +1,27 @@
 [
   {
-    "name": "new row"
+    "name": "id",
+    "type": "int",
+    "required": "1"
   },
   {
-    "name": "new row"
+    "name": "name",
+    "type": "string",
+    "required": "1"
   },
   {
-    "name": "new row"
+    "name": "created",
+    "type": "utc",
+    "required": "1"
   },
   {
-    "name": "new row"
+    "name": "updated",
+    "type": "utc",
+    "required": "1"
+  },
+  {
+    "name": "new row",
+    "type": "string",
+    "required": "1"
   }
 ]

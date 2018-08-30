@@ -12,7 +12,7 @@ var __assign = (this && this.__assign) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
-var _1 = require(".");
+var api_1 = require("./api");
 var aceState = {
     fileid: '',
 };
@@ -42,7 +42,7 @@ exports.updateAceEditor = function (theFile) {
     if (theFile.id === aceState.fileid)
         return;
     aceState.fileid = theFile.id;
-    var meta = _1.getFileMetadata();
+    var meta = api_1.getFileMetadata();
     if (meta && meta.editor) {
         aceHolder.aceDOMContainer.style.display = 'none';
     }
@@ -81,7 +81,7 @@ aceEditor.session.setMode("ace/mode/typescript");
 aceEditor.getSession().on('change', function () {
     var state = Doremifa.getState();
     var strnow = aceEditor.getValue();
-    var currentFile = _1.getCurrentFile();
+    var currentFile = api_1.getCurrentFile();
     // TODO: handle better...
     if (currentFile && !settingValue) {
         currentFile.contents = strnow;

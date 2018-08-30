@@ -1,5 +1,201 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Doremifa = require("doremifa");
+var UI = require("./editors/ui");
+var main_1 = require("./editors/main");
+Doremifa.setState({
+    editors: {
+        "tables": UI.tablesView,
+        "boxes": UI.boxesView,
+        "tsconfig": UI.tsConfigView
+    }
+});
+main_1.initialize();
+
+},{"./editors/main":4,"./editors/ui":5,"doremifa":31}],2:[function(require,module,exports){
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var Doremifa = require("doremifa");
+var api_1 = require("./api");
+var aceState = {
+    fileid: '',
+};
+exports.createAceContainer = function () {
+    var aceDOMContainer = document.createElement('div');
+    var aceDOM = document.createElement('div');
+    aceDOM.setAttribute('style', 'flex:1;');
+    aceDOMContainer.setAttribute('style', 'flex:1;display:flex;');
+    aceDOMContainer.appendChild(aceDOM);
+    document.body.appendChild(aceDOMContainer);
+    return {
+        aceDOMContainer: aceDOMContainer,
+        aceDOM: aceDOM
+    };
+};
+// only one ace editor for now...
+var aceEditor = null;
+var settingValue = false;
+var aceHolder = exports.createAceContainer();
+exports.getAceHolder = function () {
+    return aceHolder;
+};
+// The ACE editor updater
+exports.updateAceEditor = function (theFile) {
+    if (!theFile)
+        return;
+    if (theFile.id === aceState.fileid)
+        return;
+    aceState.fileid = theFile.id;
+    var meta = api_1.getFileMetadata();
+    if (meta && meta.editor) {
+        aceHolder.aceDOMContainer.style.display = 'none';
+    }
+    else {
+        aceHolder.aceDOMContainer.style.display = 'block';
+    }
+    var item = theFile;
+    if (aceEditor && theFile) {
+        aceEditor.setValue(theFile.contents, 1);
+        aceEditor.resize();
+        settingValue = false;
+        // the cursor position for the file ??? 
+        if (theFile.cursorPosition) {
+            var cursor = theFile.cursorPosition;
+            aceEditor.focus();
+            aceEditor.gotoLine(cursor.row + 1, cursor.column, true);
+        }
+        switch (item.exttype) {
+            case ".ts":
+                aceEditor.session.setMode("ace/mode/typescript");
+                break;
+            case ".md":
+                aceEditor.session.setMode("ace/mode/markdown");
+                break;
+            default:
+                aceEditor.session.setMode("ace/mode/typescript");
+        }
+        aceEditor.setOptions({
+            maxLines: 30
+        });
+    }
+};
+aceEditor = ace.edit(aceHolder.aceDOM);
+aceEditor.setTheme("ace/theme/monokai");
+aceEditor.session.setMode("ace/mode/typescript");
+aceEditor.getSession().on('change', function () {
+    var state = Doremifa.getState();
+    var strnow = aceEditor.getValue();
+    var currentFile = api_1.getCurrentFile();
+    // TODO: handle better...
+    if (currentFile && !settingValue) {
+        currentFile.contents = strnow;
+        currentFile.cursorPosition = aceEditor.getCursorPosition();
+        // state.files[currentFile.id].contents = strnow
+        // state.files[currentFile.id].cursorPosition = aceEditor.getCursorPosition()
+    }
+    if (currentFile && !settingValue) {
+        Doremifa.setState({ currentFile: __assign({}, state.currentFile, { contents: strnow }) });
+    }
+    else {
+        console.log('did not set state for editor change... settingValue', settingValue);
+        console.log(state);
+    }
+});
+
+},{"./api":3,"doremifa":31}],3:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Doremifa = require("doremifa");
+var html = Doremifa.html;
+var setState = Doremifa.setState;
+var getState = Doremifa.getState;
+// function to find certain files from the filesystem
+exports.forFiles = function (root, fn) {
+    fn(root);
+    root.files.forEach(function (f) { return exports.forFiles(f, fn); });
+};
+exports.findRoot = function () {
+    var state = getState();
+    var res = null;
+    try {
+        return state.projectFolders[state.currentProject.id];
+    }
+    catch (e) {
+        console.error(e);
+    }
+    return res;
+};
+exports.collect = function (fn) {
+    var res = [];
+    try {
+        // reads the active project files...
+        exports.forFiles(getState().activeProject.folder, function (file) {
+            if (fn(file, exports.getFileMetadata(file)))
+                res.push(file);
+        });
+    }
+    catch (e) {
+    }
+    return res;
+};
+exports.forDirectory = function (fn) {
+    var state = getState();
+    var walk = function (f) {
+        fn(f);
+        f.files.forEach(walk);
+    };
+    walk(state.activeProject.folder);
+};
+exports.findFile = function (id) {
+    var state = getState();
+    if (!state.activeProject)
+        return null;
+    var found = null;
+    var walk = function (f) {
+        if (found)
+            return;
+        if (f.id === id)
+            found = f;
+        f.files.forEach(walk);
+    };
+    walk(state.activeProject.folder);
+    return found;
+};
+exports.getCurrentFolder = function () {
+    return exports.findFile(getState().params.folderid);
+};
+exports.getCurrentFile = function () {
+    return exports.findFile(getState().params.fileid);
+};
+exports.getFileMetadata = function (theFile) {
+    var metaData = null;
+    var state = getState();
+    theFile = theFile || exports.getCurrentFile();
+    if (!theFile)
+        return null;
+    var metaname = '/.fmeta' + theFile.path + '.fmeta';
+    exports.forFiles(state.activeProject.folder, function (f) {
+        if (f.path === metaname) {
+            metaData = JSON.parse(f.contents);
+        }
+    });
+    return metaData;
+};
+
+},{"doremifa":31}],4:[function(require,module,exports){
+"use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
     return cooked;
@@ -53,84 +249,21 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
+var api_1 = require("./api");
 var axios_1 = require("axios");
-var editors_1 = require("./editors");
-var UI = require("./editors/ui");
-var ace_1 = require("./editors/ace");
-var ace_2 = require("./editors/ace");
+var ace_1 = require("./ace");
+var ace_2 = require("./ace");
+Doremifa.setState({
+    editors: {},
+    loaded: false,
+    files: []
+});
 var html = Doremifa.html;
 var setState = Doremifa.setState;
 var getState = Doremifa.getState;
-var rootFolder = null;
-Doremifa.setState({
-    loaded: false,
-    editorBinded: false,
-    files: [],
-    time: (new Date).toTimeString(),
-    // test items from the state
-    items: [
-        { x: 100, y: 100, color: "blue", width: 100, height: 100 },
-        { x: 110, y: 110, color: "red", width: 100, height: 100 },
-        { x: 50, y: 50, color: "orange", width: 44, height: 44 },
-    ]
-});
-console.log(JSON.stringify([
-    { x: 100, y: 100, color: "blue", width: 100, height: 100 },
-    { x: 110, y: 110, color: "red", width: 100, height: 100 },
-    { x: 50, y: 50, color: "orange", width: 44, height: 44 },
-], null, 2));
-// OK, these could be in state too...
-var projectList = null;
-var fileIds = {};
-// simple example of editors...
-var usedEditors = {
-    "tables": UI.tablesView,
-    "boxes": UI.boxesView,
-    "tsconfig": UI.tsConfigView
-};
-var readProjectFolder = function (project, path) { return __awaiter(_this, void 0, void 0, function () {
-    var state, found_1, walk_project_1, rootOf, mapFiles;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                state = getState();
-                if (state.projectFolders && state.projectFolders[project.id]) {
-                    found_1 = null;
-                    walk_project_1 = function (folder) {
-                        if (found_1)
-                            return;
-                        if (folder.path == path) {
-                            found_1 = folder;
-                        }
-                        else {
-                            for (var _i = 0, _a = folder.files; _i < _a.length; _i++) {
-                                var f = _a[_i];
-                                if (f.is_folder)
-                                    walk_project_1(f);
-                            }
-                        }
-                    };
-                    walk_project_1(state.projectFolders[project.id]);
-                    return [2 /*return*/, found_1];
-                }
-                return [4 /*yield*/, axios_1.default.post('/folder/' + project.id, {
-                        path: path
-                    })];
-            case 1:
-                rootOf = (_a.sent()).data;
-                mapFiles = function (folder) {
-                    fileIds[folder.id] = folder;
-                    folder.files.forEach(mapFiles);
-                };
-                mapFiles(rootOf);
-                rootOf.is_read = true;
-                return [2 /*return*/, rootOf];
-        }
-    });
-}); };
-function showFiles(state) {
+function showFolders(state) {
     var _this = this;
-    var currFolder = fileIds[state.params.folderid];
+    var currFolder = api_1.getCurrentFolder();
     if (!currFolder)
         return html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     var files = currFolder.files;
@@ -146,27 +279,31 @@ function showFiles(state) {
     }).map(function (item) {
         return html(templateObject_2 || (templateObject_2 = __makeTemplateObject(["\n      <div \n        class=", "\n        onclick=", ">", "</div>\n    "], ["\n      <div \n        class=", "\n        onclick=",
             ">", "</div>\n    "])), item.typename, function () { return __awaiter(_this, void 0, void 0, function () {
-            var folder;
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        //  && state.currentFileID !== item.id
-                        if (item.is_file) {
-                            // Move to the file...
-                            window.location.hash = '#file/fileid/' + item.id + "/folderid/" + currFolder.id;
-                        }
-                        if (!item.is_folder) return [3 /*break*/, 2];
-                        return [4 /*yield*/, readProjectFolder(state.currentProject, item.path)];
-                    case 1:
-                        folder = _a.sent();
-                        window.location.hash = '#file/folderid/' + folder.id + "/fileid/" + folder.id;
-                        _a.label = 2;
-                    case 2: return [2 /*return*/];
+                //  && state.currentFileID !== item.id
+                if (item.is_file) {
+                    // Move to the file...
+                    window.location.hash = '#file/fileid/' + item.id + "/folderid/" + currFolder.id;
                 }
+                if (item.is_folder) {
+                    window.location.hash = '#file/folderid/' + item.id;
+                }
+                return [2 /*return*/];
             });
         }); }, item.name);
     }));
 }
+exports.showFolders = showFolders;
+var readProjectFolder = function (project, path) { return __awaiter(_this, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, axios_1.default.post('/folder/' + project.id, {
+                    path: path
+                })];
+            case 1: return [2 /*return*/, (_a.sent()).data];
+        }
+    });
+}); };
 var height = window.innerHeight;
 var debounce = function (delay, fn) {
     var iv = null;
@@ -178,8 +315,8 @@ var debounce = function (delay, fn) {
         }, delay);
     };
 };
-var refreshData = debounce(200, function () { return __awaiter(_this, void 0, void 0, function () {
-    var _a, projectList, proj, state;
+var refreshData = function () { return __awaiter(_this, void 0, void 0, function () {
+    var _a, projectList, proj;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0: return [4 /*yield*/, axios_1.default.get('/projects')];
@@ -191,50 +328,28 @@ var refreshData = debounce(200, function () { return __awaiter(_this, void 0, vo
             case 2:
                 proj = _b.sent();
                 setState({
+                    activeProject: {
+                        folder: proj
+                    },
                     currentFileID: 0,
                     files: [],
                     projectFolders: __assign({}, getState().projectFolders, (_a = {}, _a[projectList[0].id] = proj, _a.activeProject = {
                         folder: proj
                     }, _a))
                 });
-                state = getState();
-                if (state.currentFile) {
-                }
-                else {
-                }
-                window.location.hash = '#file/folderid/' + proj.id;
+                if (!getState().params.folderid)
+                    window.location.hash = '#file/folderid/' + proj.id;
                 setState({ loaded: true });
                 return [2 /*return*/];
         }
     });
-}); });
+}); };
 var loadEditor = debounce(200, function () { return __awaiter(_this, void 0, void 0, function () {
-    var _a, state, projectList, proj, currFolder;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0:
-                state = getState();
-                return [4 /*yield*/, axios_1.default.get('/projects')];
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, refreshData()];
             case 1:
-                projectList = (_b.sent()).data;
-                setState({ projectList: projectList });
-                setState({ currentProject: projectList[0] });
-                return [4 /*yield*/, readProjectFolder(projectList[0], '/')
-                    // Set the project folder...
-                ];
-            case 2:
-                proj = _b.sent();
-                // Set the project folder...
-                setState({
-                    activeProject: {
-                        folder: proj
-                    },
-                    projectFolders: __assign({}, getState().projectFolders, (_a = {}, _a[projectList[0].id] = proj, _a))
-                });
-                currFolder = editors_1.getCurrentFolder();
-                if (!state.params.folderid)
-                    window.location.hash = '#file/folderid/' + proj.id;
-                setState({ loaded: true });
+                _a.sent();
                 return [2 /*return*/];
         }
     });
@@ -244,43 +359,19 @@ var aceContainer = html(templateObject_4 || (templateObject_4 = __makeTemplateOb
     var aceHolder = ace_1.getAceHolder();
     tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
 });
-// 
-var editJSON = function (strdata) {
-    var data = JSON.parse(strdata);
-    if (Array.isArray(data)) {
-        var allKeys_1 = Object.keys(data.reduce(function (prev, curr) {
-            return __assign({}, prev, curr);
-        }, {}));
-        return html(templateObject_9 || (templateObject_9 = __makeTemplateObject(["\n<table>\n  <thead>\n    <tr>\n    ", "   \n    </tr>\n  </thead>\n  ", "\n</table>    \n    "], ["\n<table>\n  <thead>\n    <tr>\n    ",
-            "   \n    </tr>\n  </thead>\n  ",
-            "\n</table>    \n    "])), allKeys_1.map(function (colname) {
-            return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<td>", "</td>"], ["<td>", "</td>"])), colname);
-        }), data.map(function (item) {
-            return html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["<tr>\n      ", "\n    </tr>"], ["<tr>\n      ",
-                "\n    </tr>"])), allKeys_1.map(function (colname) {
-                var c = item[colname];
-                if (c.length > 20) {
-                    return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<td><div class=\"incomplete\">", "...</div></td>"], ["<td><div class=\"incomplete\">", "...</div></td>"])), c.substring(0, 20));
-                }
-                return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["<td>", "</td>"], ["<td>", "</td>"])), c);
-            }));
-        }));
-    }
-    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<pre>", "</pre>"], ["<pre>", "</pre>"])), JSON.stringify(data, null, 2));
-};
 var defaultEditor = (function (state) {
-    return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
+    return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
 });
 var editorArea = function (state) {
     if (!state.loaded) {
-        return html(templateObject_12 || (templateObject_12 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
+        return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
     }
-    var fileMeta = editors_1.getFileMetadata();
+    var fileMeta = api_1.getFileMetadata();
     var editorName = (fileMeta && fileMeta.editor) || '';
-    var editorFn = usedEditors[editorName] || defaultEditor;
+    var editorFn = state.editors[editorName] || defaultEditor;
     // update the ace
-    ace_2.updateAceEditor(editors_1.getCurrentFile());
-    return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
+    ace_2.updateAceEditor(api_1.getCurrentFile());
+    return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
         ">Save Me!</button>\n\n    <button onclick=",
         ">Save info of current file</button>\n\n    <button onclick=",
         " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
@@ -288,7 +379,7 @@ var editorArea = function (state) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    currentFile = editors_1.getCurrentFile();
+                    currentFile = api_1.getCurrentFile();
                     if (!currentFile) return [3 /*break*/, 2];
                     return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
                             path: currentFile.path,
@@ -305,7 +396,7 @@ var editorArea = function (state) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    curr = editors_1.getCurrentFile();
+                    curr = api_1.getCurrentFile();
                     return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
                             path: '/.fmeta/' + curr.path + '.fmeta',
                             content: JSON.stringify({
@@ -326,183 +417,15 @@ var editorArea = function (state) {
     }); }, editorFn(state)).onReady(function (tpl) {
     });
 };
-// main HTML...
-// Simple JSON data editor built using doremifa
-Doremifa.mount(document.body, function (state) { return html(templateObject_14 || (templateObject_14 = __makeTemplateObject(["\n<div style=\"display:flex;\">\n  <div class=\"filebrowser\">\n    ", "\n  </div>\n  ", "\n</div>"], ["\n<div style=\"display:flex;\">\n  <div class=\"filebrowser\">\n    ",
-    "\n  </div>\n  ", "\n</div>"])), Doremifa.router({
-    file: showFiles
-}), editorArea(state)).onReady(loadEditor); });
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
+exports.initialize = function () {
+    Doremifa.mount(document.body, function (state) { return html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ", "\n    </div>\n    ", "\n  </div>"], ["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ",
+        "\n    </div>\n    ", "\n  </div>"])), Doremifa.router({
+        file: showFolders
+    }), editorArea(state)).onReady(loadEditor); });
+};
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8;
 
-},{"./editors":3,"./editors/ace":2,"./editors/ui":4,"axios":5,"doremifa":30}],2:[function(require,module,exports){
-"use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var Doremifa = require("doremifa");
-var _1 = require(".");
-var aceState = {
-    fileid: '',
-};
-exports.createAceContainer = function () {
-    var aceDOMContainer = document.createElement('div');
-    var aceDOM = document.createElement('div');
-    aceDOM.setAttribute('style', 'flex:1;');
-    aceDOMContainer.setAttribute('style', 'flex:1;display:flex;');
-    aceDOMContainer.appendChild(aceDOM);
-    document.body.appendChild(aceDOMContainer);
-    return {
-        aceDOMContainer: aceDOMContainer,
-        aceDOM: aceDOM
-    };
-};
-// only one ace editor for now...
-var aceEditor = null;
-var settingValue = false;
-var aceHolder = exports.createAceContainer();
-exports.getAceHolder = function () {
-    return aceHolder;
-};
-// The ACE editor updater
-exports.updateAceEditor = function (theFile) {
-    if (!theFile)
-        return;
-    if (theFile.id === aceState.fileid)
-        return;
-    aceState.fileid = theFile.id;
-    var meta = _1.getFileMetadata();
-    if (meta && meta.editor) {
-        aceHolder.aceDOMContainer.style.display = 'none';
-    }
-    else {
-        aceHolder.aceDOMContainer.style.display = 'block';
-    }
-    var item = theFile;
-    if (aceEditor && theFile) {
-        aceEditor.setValue(theFile.contents, 1);
-        aceEditor.resize();
-        settingValue = false;
-        // the cursor position for the file ??? 
-        if (theFile.cursorPosition) {
-            var cursor = theFile.cursorPosition;
-            aceEditor.focus();
-            aceEditor.gotoLine(cursor.row + 1, cursor.column, true);
-        }
-        switch (item.exttype) {
-            case ".ts":
-                aceEditor.session.setMode("ace/mode/typescript");
-                break;
-            case ".md":
-                aceEditor.session.setMode("ace/mode/markdown");
-                break;
-            default:
-                aceEditor.session.setMode("ace/mode/typescript");
-        }
-        aceEditor.setOptions({
-            maxLines: 30
-        });
-    }
-};
-aceEditor = ace.edit(aceHolder.aceDOM);
-aceEditor.setTheme("ace/theme/monokai");
-aceEditor.session.setMode("ace/mode/typescript");
-aceEditor.getSession().on('change', function () {
-    var state = Doremifa.getState();
-    var strnow = aceEditor.getValue();
-    var currentFile = _1.getCurrentFile();
-    // TODO: handle better...
-    if (currentFile && !settingValue) {
-        currentFile.contents = strnow;
-        currentFile.cursorPosition = aceEditor.getCursorPosition();
-        // state.files[currentFile.id].contents = strnow
-        // state.files[currentFile.id].cursorPosition = aceEditor.getCursorPosition()
-    }
-    if (currentFile && !settingValue) {
-        Doremifa.setState({ currentFile: __assign({}, state.currentFile, { contents: strnow }) });
-    }
-    else {
-        console.log('did not set state for editor change... settingValue', settingValue);
-        console.log(state);
-    }
-});
-
-},{".":3,"doremifa":30}],3:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Doremifa = require("doremifa");
-var html = Doremifa.html;
-var setState = Doremifa.setState;
-var getState = Doremifa.getState;
-// function to find certain files from the filesystem
-exports.forFiles = function (root, fn) {
-    fn(root);
-    root.files.forEach(function (f) { return exports.forFiles(f, fn); });
-};
-exports.findRoot = function () {
-    var state = getState();
-    var res = null;
-    try {
-        return state.projectFolders[state.currentProject.id];
-    }
-    catch (e) {
-        console.error(e);
-    }
-    return res;
-};
-exports.forDirectory = function (fn) {
-    var state = getState();
-    var walk = function (f) {
-        fn(f);
-        f.files.forEach(walk);
-    };
-    walk(state.activeProject.folder);
-};
-exports.findFile = function (id) {
-    var state = getState();
-    if (!state.activeProject)
-        return null;
-    var found = null;
-    var walk = function (f) {
-        if (found)
-            return;
-        if (f.id === id)
-            found = f;
-        f.files.forEach(walk);
-    };
-    walk(state.activeProject.folder);
-    return found;
-};
-exports.getCurrentFolder = function () {
-    return exports.findFile(getState().params.folderid);
-};
-exports.getCurrentFile = function () {
-    return exports.findFile(getState().params.fileid);
-};
-exports.getFileMetadata = function () {
-    var metaData = null;
-    var state = getState();
-    var theFile = exports.getCurrentFile();
-    if (!theFile)
-        return null;
-    var metaname = '/.fmeta' + theFile.path + '.fmeta';
-    exports.forFiles(state.activeProject.folder, function (f) {
-        if (f.path === metaname) {
-            metaData = JSON.parse(f.contents);
-        }
-    });
-    return metaData;
-};
-
-},{"doremifa":30}],4:[function(require,module,exports){
+},{"./ace":2,"./api":3,"axios":6,"doremifa":31}],5:[function(require,module,exports){
 "use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
@@ -521,38 +444,76 @@ var __assign = (this && this.__assign) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
-var _1 = require(".");
+var api_1 = require("./api");
 var html = Doremifa.html;
 var setState = Doremifa.setState;
 var getState = Doremifa.getState;
 exports.tablesView = function (state) {
-    var file = _1.getCurrentFile();
-    if (!file)
+    var file = api_1.getCurrentFile();
+    // setting the state data...
+    if (!state.editorFilePath || state.editorFilePath !== file.path) {
+        setState({
+            editorFilePath: file.path,
+            data: JSON.parse(file.contents)
+        });
         return html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
-    var data = JSON.parse(file.contents);
-    return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["\n<div>\n    <h4>Tables editor</h4>\n    <div>\n      <button onclick=", ">+ row</button>\n    </div>\n    ", "\n</div>    \n    "], ["\n<div>\n    <h4>Tables editor</h4>\n    <div>\n      <button onclick=",
-        ">+ row</button>\n    </div>\n    ",
-        "\n</div>    \n    "])), function () {
-        data.push({ name: 'new row' });
-        setState({ currentFile: __assign({}, file, { contents: JSON.stringify(data, null, 2) }) });
-    }, data.map(function (row) {
-        return html(templateObject_2 || (templateObject_2 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), JSON.stringify(row));
+    }
+    // The data of the current item...
+    var data = state.data;
+    var fields = Object.keys(data.reduce(function (prev, current) {
+        return __assign({}, prev, current);
+    }, {}));
+    file.contents = JSON.stringify(state.data, null, 2);
+    return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=", ">Search JSON files</button>\n\n    <div>\n      <button onclick=", ">+ row</button>\n    </div>\n\n    <table>\n    <tr>\n      <td></td>\n      ", "\n    </tr>\n    ", "\n    </table>\n</div>    \n    "], ["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=",
+        ">Search JSON files</button>\n\n    <div>\n      <button onclick=",
+        ">+ row</button>\n    </div>\n\n    <table>\n    <tr>\n      <td></td>\n      ", "\n    </tr>\n    ",
+        "\n    </table>\n</div>    \n    "])), file.name, function () {
+        // search all files having .json
+        console.log(api_1.collect(function (file, meta) {
+            if (meta)
+                console.log('collect meta ', meta);
+            return !!file.path.match('json');
+        }));
+    }, function () {
+        // Adding new row...
+        data.push({ name: 'new row', type: 'string', required: '1' });
+        /*
+        setState({currentFile:{
+          ...file,
+          contents : JSON.stringify(data, null, 2)
+        }})
+        */
+        setState({});
+    }, fields.map(function (f) { return html(templateObject_2 || (templateObject_2 = __makeTemplateObject(["<td><b>", "</b></td>"], ["<td><b>", "</b></td>"])), f); }), data.map(function (row, i) {
+        return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<tr>\n\n        <td><button onclick=", ">x</button></td>\n      \n        ", "</tr>"], ["<tr>\n\n        <td><button onclick=",
+            ">x</button></td>\n      \n        ",
+            "</tr>"])), function () {
+            data.splice(i, 1);
+            setState({});
+        }, fields.map(function (field) {
+            // different editors for different types, but for now...
+            return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["<td><input value=", " onkeyup=", "/></td>"], ["<td><input value=", " onkeyup=",
+                "/></td>"])), row[field], function (e) {
+                row[field] = e.target.value;
+                setState({});
+            });
+        }));
     }));
 };
 // simple "boxes" -editor...
 exports.boxesView = function (state) {
-    var file = _1.getCurrentFile();
+    var file = api_1.getCurrentFile();
     // load items...
     if (!state.editorFilePath || state.editorFilePath !== file.path) {
         setState({
             editorFilePath: file.path,
             data: JSON.parse(file.contents)
         });
-        return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
+        return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     }
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
+    return html(templateObject_12 || (templateObject_12 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
         ">+ box</button>\n    <button onclick=",
         ">Update</button>\n     ",
         "\n\n      ",
@@ -567,28 +528,28 @@ exports.boxesView = function (state) {
         items.push({ x: 10, y: 10, width: 100, height: 100, color: "green" });
         setState({});
     }, function () {
-        var currFile = _1.getCurrentFile();
+        var currFile = api_1.getCurrentFile();
         currFile.contents = JSON.stringify(state.data, null, 2);
         setState({});
-    }, state.activeItem ? html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<input type=\"color\" value=", " \n        onchange=", "\n      />"], ["<input type=\"color\" value=", " \n        onchange=",
+    }, state.activeItem ? html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["<input type=\"color\" value=", " \n        onchange=", "\n      />"], ["<input type=\"color\" value=", " \n        onchange=",
         "\n      />"])), state.activeItem.color, function (e) {
         if (e.target.value) {
             state.activeItem.color = e.target.value;
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n      onkeyup=", "\n    />"], ["<input style=\"width:60px;\" value=", " \n      onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n      onkeyup=", "\n    />"], ["<input style=\"width:60px;\" value=", " \n      onkeyup=",
         "\n    />"])), state.activeItem.width, function (e) {
         if (e.target.value) {
             state.activeItem.width = parseInt(e.target.value);
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n    onkeyup=", "\n  />"], ["<input style=\"width:60px;\" value=", " \n    onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_9 || (templateObject_9 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n    onkeyup=", "\n  />"], ["<input style=\"width:60px;\" value=", " \n    onkeyup=",
         "\n  />"])), state.activeItem.height, function (e) {
         if (e.target.value) {
             state.activeItem.height = parseInt(e.target.value);
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n  onkeyup=", "\n/>"], ["<input style=\"width:60px;\" value=", " \n  onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n  onkeyup=", "\n/>"], ["<input style=\"width:60px;\" value=", " \n  onkeyup=",
         "\n/>"])), state.activeItem.opacity || 0.5, function (e) {
         if (e.target.value) {
             state.activeItem.opacity = parseFloat(e.target.value);
@@ -606,7 +567,7 @@ exports.boxesView = function (state) {
         setState({ draggedItem: null });
     }, function () {
         setState({ draggedItem: null });
-    }, state.data.items.map(function (item) { return html(templateObject_9 || (templateObject_9 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=", "></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
+    }, state.data.items.map(function (item) { return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=", "></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
         " width=", " height=", " fill=", " opacity=", "></rect>\n        "])), item.x, item.y, function (e) {
         // mark item as dragged
         if (!state.draggedItem) {
@@ -629,7 +590,7 @@ exports.tsConfigView = function (state) {
     // These items should be in the state...
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_12 || (templateObject_12 = __makeTemplateObject(["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=",
+    return html(templateObject_14 || (templateObject_14 = __makeTemplateObject(["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=",
         "\n        onmouseup=",
         "\n        onmouseleave=",
         "\n      >\n      ",
@@ -645,7 +606,7 @@ exports.tsConfigView = function (state) {
         setState({ draggedItem: null });
     }, function () {
         setState({ draggedItem: null });
-    }, state.items.map(function (item) { return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
+    }, state.items.map(function (item) { return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
         " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "])), item.x, item.y, function (e) {
         // mark item as dragged
         if (!state.draggedItem) {
@@ -659,11 +620,11 @@ exports.tsConfigView = function (state) {
         }
     }, item.width, item.height, item.color); }));
 };
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
 
-},{".":3,"doremifa":30}],5:[function(require,module,exports){
+},{"./api":3,"doremifa":31}],6:[function(require,module,exports){
 module.exports = require('./lib/axios');
-},{"./lib/axios":7}],6:[function(require,module,exports){
+},{"./lib/axios":8}],7:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -847,7 +808,7 @@ module.exports = function xhrAdapter(config) {
 };
 
 }).call(this,require('_process'))
-},{"../core/createError":13,"./../core/settle":16,"./../helpers/btoa":20,"./../helpers/buildURL":21,"./../helpers/cookies":23,"./../helpers/isURLSameOrigin":25,"./../helpers/parseHeaders":27,"./../utils":29,"_process":33}],7:[function(require,module,exports){
+},{"../core/createError":14,"./../core/settle":17,"./../helpers/btoa":21,"./../helpers/buildURL":22,"./../helpers/cookies":24,"./../helpers/isURLSameOrigin":26,"./../helpers/parseHeaders":28,"./../utils":30,"_process":34}],8:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -901,7 +862,7 @@ module.exports = axios;
 // Allow use of default import syntax in TypeScript
 module.exports.default = axios;
 
-},{"./cancel/Cancel":8,"./cancel/CancelToken":9,"./cancel/isCancel":10,"./core/Axios":11,"./defaults":18,"./helpers/bind":19,"./helpers/spread":28,"./utils":29}],8:[function(require,module,exports){
+},{"./cancel/Cancel":9,"./cancel/CancelToken":10,"./cancel/isCancel":11,"./core/Axios":12,"./defaults":19,"./helpers/bind":20,"./helpers/spread":29,"./utils":30}],9:[function(require,module,exports){
 'use strict';
 
 /**
@@ -922,7 +883,7 @@ Cancel.prototype.__CANCEL__ = true;
 
 module.exports = Cancel;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 var Cancel = require('./Cancel');
@@ -981,14 +942,14 @@ CancelToken.source = function source() {
 
 module.exports = CancelToken;
 
-},{"./Cancel":8}],10:[function(require,module,exports){
+},{"./Cancel":9}],11:[function(require,module,exports){
 'use strict';
 
 module.exports = function isCancel(value) {
   return !!(value && value.__CANCEL__);
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 var defaults = require('./../defaults');
@@ -1069,7 +1030,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 
 module.exports = Axios;
 
-},{"./../defaults":18,"./../utils":29,"./InterceptorManager":12,"./dispatchRequest":14}],12:[function(require,module,exports){
+},{"./../defaults":19,"./../utils":30,"./InterceptorManager":13,"./dispatchRequest":15}],13:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1123,7 +1084,7 @@ InterceptorManager.prototype.forEach = function forEach(fn) {
 
 module.exports = InterceptorManager;
 
-},{"./../utils":29}],13:[function(require,module,exports){
+},{"./../utils":30}],14:[function(require,module,exports){
 'use strict';
 
 var enhanceError = require('./enhanceError');
@@ -1143,7 +1104,7 @@ module.exports = function createError(message, config, code, request, response) 
   return enhanceError(error, config, code, request, response);
 };
 
-},{"./enhanceError":15}],14:[function(require,module,exports){
+},{"./enhanceError":16}],15:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1231,7 +1192,7 @@ module.exports = function dispatchRequest(config) {
   });
 };
 
-},{"../cancel/isCancel":10,"../defaults":18,"./../helpers/combineURLs":22,"./../helpers/isAbsoluteURL":24,"./../utils":29,"./transformData":17}],15:[function(require,module,exports){
+},{"../cancel/isCancel":11,"../defaults":19,"./../helpers/combineURLs":23,"./../helpers/isAbsoluteURL":25,"./../utils":30,"./transformData":18}],16:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1254,7 +1215,7 @@ module.exports = function enhanceError(error, config, code, request, response) {
   return error;
 };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 var createError = require('./createError');
@@ -1282,7 +1243,7 @@ module.exports = function settle(resolve, reject, response) {
   }
 };
 
-},{"./createError":13}],17:[function(require,module,exports){
+},{"./createError":14}],18:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1304,7 +1265,7 @@ module.exports = function transformData(data, headers, fns) {
   return data;
 };
 
-},{"./../utils":29}],18:[function(require,module,exports){
+},{"./../utils":30}],19:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -1404,7 +1365,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 module.exports = defaults;
 
 }).call(this,require('_process'))
-},{"./adapters/http":6,"./adapters/xhr":6,"./helpers/normalizeHeaderName":26,"./utils":29,"_process":33}],19:[function(require,module,exports){
+},{"./adapters/http":7,"./adapters/xhr":7,"./helpers/normalizeHeaderName":27,"./utils":30,"_process":34}],20:[function(require,module,exports){
 'use strict';
 
 module.exports = function bind(fn, thisArg) {
@@ -1417,7 +1378,7 @@ module.exports = function bind(fn, thisArg) {
   };
 };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 // btoa polyfill for IE<10 courtesy https://github.com/davidchambers/Base64.js
@@ -1455,7 +1416,7 @@ function btoa(input) {
 
 module.exports = btoa;
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1523,7 +1484,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
   return url;
 };
 
-},{"./../utils":29}],22:[function(require,module,exports){
+},{"./../utils":30}],23:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1539,7 +1500,7 @@ module.exports = function combineURLs(baseURL, relativeURL) {
     : baseURL;
 };
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1594,7 +1555,7 @@ module.exports = (
   })()
 );
 
-},{"./../utils":29}],24:[function(require,module,exports){
+},{"./../utils":30}],25:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1610,7 +1571,7 @@ module.exports = function isAbsoluteURL(url) {
   return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
 };
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1680,7 +1641,7 @@ module.exports = (
   })()
 );
 
-},{"./../utils":29}],26:[function(require,module,exports){
+},{"./../utils":30}],27:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -1694,7 +1655,7 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
   });
 };
 
-},{"../utils":29}],27:[function(require,module,exports){
+},{"../utils":30}],28:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1749,7 +1710,7 @@ module.exports = function parseHeaders(headers) {
   return parsed;
 };
 
-},{"./../utils":29}],28:[function(require,module,exports){
+},{"./../utils":30}],29:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1778,7 +1739,7 @@ module.exports = function spread(callback) {
   };
 };
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 'use strict';
 
 var bind = require('./helpers/bind');
@@ -2083,7 +2044,7 @@ module.exports = {
   trim: trim
 };
 
-},{"./helpers/bind":19,"is-buffer":32}],30:[function(require,module,exports){
+},{"./helpers/bind":20,"is-buffer":33}],31:[function(require,module,exports){
 "use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
@@ -3005,7 +2966,7 @@ state, options) {
 exports.mount = mount;
 var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9;
 
-},{"./xmlparser":31}],31:[function(require,module,exports){
+},{"./xmlparser":32}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var index_1 = require("./index");
@@ -5648,7 +5609,7 @@ var XMLParser = /** @class */ (function () {
 }());
 exports.XMLParser = XMLParser;
 
-},{"./index":30}],32:[function(require,module,exports){
+},{"./index":31}],33:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -5671,7 +5632,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
