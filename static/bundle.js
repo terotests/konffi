@@ -1,20 +1,35 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
+var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
+    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+    return cooked;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
 var UI = require("./editors/ui");
+var ACE = require("./editors/ace");
+var API = require("./editors/api");
 var main_1 = require("./editors/main");
 Doremifa.setState({
     editors: {
         "tables": UI.tablesView,
         "boxes": UI.boxesView,
-        "tsconfig": UI.tsConfigView
+        "tsconfig": UI.tsConfigView,
+        "package": function (state) {
+            ACE.updateAceEditor(API.getCurrentFile());
+            return Doremifa.html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["\n<div>Editor for package.json</div>  \n", "\n        "], ["\n<div>Editor for package.json</div>  \n", "\n        "])), ACE.getACETemplate());
+        }
     }
 });
 main_1.initialize();
+var templateObject_1;
 
-},{"./editors/main":4,"./editors/ui":5,"doremifa":31}],2:[function(require,module,exports){
+},{"./editors/ace":2,"./editors/api":3,"./editors/main":4,"./editors/ui":5,"doremifa":31}],2:[function(require,module,exports){
 "use strict";
+var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
+    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+    return cooked;
+};
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -59,7 +74,7 @@ exports.updateAceEditor = function (theFile) {
         return;
     aceState.fileid = theFile.id;
     var meta = api_1.getFileMetadata();
-    if (meta && meta.editor) {
+    if (meta && meta.editor && !meta.ace) {
         aceHolder.aceDOMContainer.style.display = 'none';
     }
     else {
@@ -113,14 +128,90 @@ aceEditor.getSession().on('change', function () {
         console.log(state);
     }
 });
+// The Ace editor container..
+var aceContainer = Doremifa.html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
+    var aceHolder = exports.getAceHolder();
+    tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
+});
+exports.getACETemplate = function () {
+    return aceContainer;
+};
+var templateObject_1;
 
 },{"./api":3,"doremifa":31}],3:[function(require,module,exports){
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var Doremifa = require("doremifa");
+var axios_1 = require("axios");
 var html = Doremifa.html;
 var setState = Doremifa.setState;
 var getState = Doremifa.getState;
+exports.saveFile = function (file) { return __awaiter(_this, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!file)
+                    return [2 /*return*/, null];
+                return [4 /*yield*/, axios_1.default.post('/savefile/' + getState().currentProject.id, {
+                        path: file.path,
+                        content: file.contents
+                    })];
+            case 1: return [2 /*return*/, _a.sent()];
+        }
+    });
+}); };
+exports.saveFileMetadata = function (file, metadata) { return __awaiter(_this, void 0, void 0, function () {
+    var state;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!file)
+                    return [2 /*return*/, null];
+                state = getState();
+                return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
+                        path: '/.fmeta/' + file.path + '.fmeta',
+                        content: JSON.stringify(metadata, null, 2)
+                    })];
+            case 1: return [2 /*return*/, _a.sent()];
+        }
+    });
+}); };
 // function to find certain files from the filesystem
 exports.forFiles = function (root, fn) {
     fn(root);
@@ -194,7 +285,7 @@ exports.getFileMetadata = function (theFile) {
     return metaData;
 };
 
-},{"doremifa":31}],4:[function(require,module,exports){
+},{"axios":6,"doremifa":31}],4:[function(require,module,exports){
 "use strict";
 var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
@@ -316,7 +407,7 @@ var debounce = function (delay, fn) {
     };
 };
 var refreshData = function () { return __awaiter(_this, void 0, void 0, function () {
-    var _a, projectList, proj;
+    var _a, projectList, proj, currentFolder;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0: return [4 /*yield*/, axios_1.default.get('/projects')];
@@ -337,8 +428,10 @@ var refreshData = function () { return __awaiter(_this, void 0, void 0, function
                         folder: proj
                     }, _a))
                 });
-                if (!getState().params.folderid)
+                currentFolder = api_1.getCurrentFolder();
+                if (!currentFolder) {
                     window.location.hash = '#file/folderid/' + proj.id;
+                }
                 setState({ loaded: true });
                 return [2 /*return*/];
         }
@@ -354,59 +447,36 @@ var loadEditor = debounce(200, function () { return __awaiter(_this, void 0, voi
         }
     });
 }); });
-// The Ace editor container..
-var aceContainer = html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
-    var aceHolder = ace_1.getAceHolder();
-    tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
-});
 var defaultEditor = (function (state) {
-    return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
+    return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), ace_1.getACETemplate());
 });
 var editorArea = function (state) {
     if (!state.loaded) {
-        return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
+        return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
     }
     var fileMeta = api_1.getFileMetadata();
     var editorName = (fileMeta && fileMeta.editor) || '';
     var editorFn = state.editors[editorName] || defaultEditor;
     // update the ace
     ace_2.updateAceEditor(api_1.getCurrentFile());
-    return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
-        ">Save Me!</button>\n\n    <button onclick=",
+    return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
+        ">Save Me!</button>\n    <button onclick=",
         ">Save info of current file</button>\n\n    <button onclick=",
         " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
-        var currentFile, res;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    currentFile = api_1.getCurrentFile();
-                    if (!currentFile) return [3 /*break*/, 2];
-                    return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
-                            path: currentFile.path,
-                            content: currentFile.contents
-                        })];
+                case 0: return [4 /*yield*/, api_1.saveFile(api_1.getCurrentFile())];
                 case 1:
-                    res = _a.sent();
-                    _a.label = 2;
-                case 2: return [2 /*return*/];
+                    _a.sent();
+                    return [2 /*return*/];
             }
         });
     }); }, function () { return __awaiter(_this, void 0, void 0, function () {
-        var curr, res;
+        var curr;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    curr = api_1.getCurrentFile();
-                    return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
-                            path: '/.fmeta/' + curr.path + '.fmeta',
-                            content: JSON.stringify({
-                                info: 'Saved info about ' + curr.name
-                            })
-                        })];
-                case 1:
-                    res = _a.sent();
-                    return [2 /*return*/];
-            }
+            curr = api_1.getCurrentFile();
+            api_1.saveFileMetadata(curr, __assign({}, api_1.getFileMetadata(curr)));
+            return [2 /*return*/];
         });
     }); }, function () { return __awaiter(_this, void 0, void 0, function () {
         return __generator(this, function (_a) {
@@ -418,12 +488,12 @@ var editorArea = function (state) {
     });
 };
 exports.initialize = function () {
-    Doremifa.mount(document.body, function (state) { return html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ", "\n    </div>\n    ", "\n  </div>"], ["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ",
+    Doremifa.mount(document.body, function (state) { return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ", "\n    </div>\n    ", "\n  </div>"], ["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ",
         "\n    </div>\n    ", "\n  </div>"])), Doremifa.router({
         file: showFolders
     }), editorArea(state)).onReady(loadEditor); });
 };
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7;
 
 },{"./ace":2,"./api":3,"axios":6,"doremifa":31}],5:[function(require,module,exports){
 "use strict";
@@ -464,7 +534,13 @@ exports.tablesView = function (state) {
         return __assign({}, prev, current);
     }, {}));
     file.contents = JSON.stringify(state.data, null, 2);
-    return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=", ">Search JSON files</button>\n\n    <div>\n      <button onclick=", ">+ row</button>\n    </div>\n\n    <table>\n    <tr>\n      <td></td>\n      ", "\n    </tr>\n    ", "\n    </table>\n</div>    \n    "], ["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=",
+    // find arrays of primitives...
+    var primitives = [];
+    api_1.collect(function (file) { return file.name == 'primitives.json'; })
+        .forEach(function (file) {
+        primitives = primitives.concat(JSON.parse(file.contents));
+    });
+    return html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=", ">Search JSON files</button>\n\n    <div>\n      <button onclick=", ">+ row</button>\n    </div>\n\n    <table>\n    <tr>\n      <td></td>\n      ", "\n    </tr>\n    ", "\n    </table>\n</div>    \n    "], ["\n<div>\n    <h4>", "</h4>\n\n    <button onclick=",
         ">Search JSON files</button>\n\n    <div>\n      <button onclick=",
         ">+ row</button>\n    </div>\n\n    <table>\n    <tr>\n      <td></td>\n      ", "\n    </tr>\n    ",
         "\n    </table>\n</div>    \n    "])), file.name, function () {
@@ -475,24 +551,30 @@ exports.tablesView = function (state) {
             return !!file.path.match('json');
         }));
     }, function () {
-        // Adding new row...
         data.push({ name: 'new row', type: 'string', required: '1' });
-        /*
-        setState({currentFile:{
-          ...file,
-          contents : JSON.stringify(data, null, 2)
-        }})
-        */
         setState({});
     }, fields.map(function (f) { return html(templateObject_2 || (templateObject_2 = __makeTemplateObject(["<td><b>", "</b></td>"], ["<td><b>", "</b></td>"])), f); }), data.map(function (row, i) {
-        return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<tr>\n\n        <td><button onclick=", ">x</button></td>\n      \n        ", "</tr>"], ["<tr>\n\n        <td><button onclick=",
+        return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["<tr>\n\n        <td><button onclick=", ">x</button></td>\n      \n        ", "</tr>"], ["<tr>\n\n        <td><button onclick=",
             ">x</button></td>\n      \n        ",
             "</tr>"])), function () {
             data.splice(i, 1);
             setState({});
         }, fields.map(function (field) {
+            // types from primitives, TODO: modularize
+            if (field === 'type') {
+                return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<td>\n              <select onchange=", ">\n              ", "\n              </select>\n            </td>"], ["<td>\n              <select onchange=",
+                    ">\n              ",
+                    "\n              </select>\n            </td>"])), function (e) {
+                    row[field] = e.target.value;
+                }, primitives.map(function (item) {
+                    if (item.name === row[field]) {
+                        return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["<option selected value=", ">", "</option>"], ["<option selected value=", ">", "</option>"])), item.name, item.name);
+                    }
+                    return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<option value=", ">", "</option>"], ["<option value=", ">", "</option>"])), item.name, item.name);
+                }));
+            }
             // different editors for different types, but for now...
-            return html(templateObject_3 || (templateObject_3 = __makeTemplateObject(["<td><input value=", " onkeyup=", "/></td>"], ["<td><input value=", " onkeyup=",
+            return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<td><input value=", " onkeyup=", "/></td>"], ["<td><input value=", " onkeyup=",
                 "/></td>"])), row[field], function (e) {
                 row[field] = e.target.value;
                 setState({});
@@ -509,11 +591,11 @@ exports.boxesView = function (state) {
             editorFilePath: file.path,
             data: JSON.parse(file.contents)
         });
-        return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
+        return html(templateObject_9 || (templateObject_9 = __makeTemplateObject(["<div></div>"], ["<div></div>"])));
     }
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_12 || (templateObject_12 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
+    return html(templateObject_15 || (templateObject_15 = __makeTemplateObject(["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=", ">+ box</button>\n    <button onclick=", ">Update</button>\n     ", "\n\n      ", " \n    x\n    ", "\n\n  ", "\n\n    </div>\n    <div>\n    <svg width=", " height=", "\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>SVG boxes editor</h4>\n    Filename : ", "\n    <div>\n    <button onclick=",
         ">+ box</button>\n    <button onclick=",
         ">Update</button>\n     ",
         "\n\n      ",
@@ -531,25 +613,25 @@ exports.boxesView = function (state) {
         var currFile = api_1.getCurrentFile();
         currFile.contents = JSON.stringify(state.data, null, 2);
         setState({});
-    }, state.activeItem ? html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["<input type=\"color\" value=", " \n        onchange=", "\n      />"], ["<input type=\"color\" value=", " \n        onchange=",
+    }, state.activeItem ? html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<input type=\"color\" value=", " \n        onchange=", "\n      />"], ["<input type=\"color\" value=", " \n        onchange=",
         "\n      />"])), state.activeItem.color, function (e) {
         if (e.target.value) {
             state.activeItem.color = e.target.value;
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n      onkeyup=", "\n    />"], ["<input style=\"width:60px;\" value=", " \n      onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n      onkeyup=", "\n    />"], ["<input style=\"width:60px;\" value=", " \n      onkeyup=",
         "\n    />"])), state.activeItem.width, function (e) {
         if (e.target.value) {
             state.activeItem.width = parseInt(e.target.value);
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_9 || (templateObject_9 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n    onkeyup=", "\n  />"], ["<input style=\"width:60px;\" value=", " \n    onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_12 || (templateObject_12 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n    onkeyup=", "\n  />"], ["<input style=\"width:60px;\" value=", " \n    onkeyup=",
         "\n  />"])), state.activeItem.height, function (e) {
         if (e.target.value) {
             state.activeItem.height = parseInt(e.target.value);
             setState({});
         }
-    }) : '', state.activeItem ? html(templateObject_10 || (templateObject_10 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n  onkeyup=", "\n/>"], ["<input style=\"width:60px;\" value=", " \n  onkeyup=",
+    }) : '', state.activeItem ? html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["<input style=\"width:60px;\" value=", " \n  onkeyup=", "\n/>"], ["<input style=\"width:60px;\" value=", " \n  onkeyup=",
         "\n/>"])), state.activeItem.opacity || 0.5, function (e) {
         if (e.target.value) {
             state.activeItem.opacity = parseFloat(e.target.value);
@@ -567,7 +649,7 @@ exports.boxesView = function (state) {
         setState({ draggedItem: null });
     }, function () {
         setState({ draggedItem: null });
-    }, state.data.items.map(function (item) { return html(templateObject_11 || (templateObject_11 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=", "></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
+    }, state.data.items.map(function (item) { return html(templateObject_14 || (templateObject_14 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=", "></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
         " width=", " height=", " fill=", " opacity=", "></rect>\n        "])), item.x, item.y, function (e) {
         // mark item as dragged
         if (!state.draggedItem) {
@@ -590,7 +672,7 @@ exports.tsConfigView = function (state) {
     // These items should be in the state...
     var dragged = null;
     var draggedItem = null;
-    return html(templateObject_14 || (templateObject_14 = __makeTemplateObject(["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=",
+    return html(templateObject_17 || (templateObject_17 = __makeTemplateObject(["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=", "\n        onmouseup=", "\n        onmouseleave=", "\n      >\n      ", "\n    </svg>\n    </div>\n\n</div>    \n    "], ["\n<div>\n    <h4>TypeScript configuration</h4>\n    Filename : ", "\n    <div>\n    <svg width=\"300\" height=\"300\"\n        onmousemove=",
         "\n        onmouseup=",
         "\n        onmouseleave=",
         "\n      >\n      ",
@@ -606,7 +688,7 @@ exports.tsConfigView = function (state) {
         setState({ draggedItem: null });
     }, function () {
         setState({ draggedItem: null });
-    }, state.items.map(function (item) { return html(templateObject_13 || (templateObject_13 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
+    }, state.items.map(function (item) { return html(templateObject_16 || (templateObject_16 = __makeTemplateObject(["\n          <rect x=", " y=", " onmousedown=", " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "], ["\n          <rect x=", " y=", " onmousedown=",
         " width=", " height=", " fill=", " opacity=\"0.4\"></rect>\n        "])), item.x, item.y, function (e) {
         // mark item as dragged
         if (!state.draggedItem) {
@@ -620,7 +702,7 @@ exports.tsConfigView = function (state) {
         }
     }, item.width, item.height, item.color); }));
 };
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8, templateObject_9, templateObject_10, templateObject_11, templateObject_12, templateObject_13, templateObject_14, templateObject_15, templateObject_16, templateObject_17;
 
 },{"./api":3,"doremifa":31}],6:[function(require,module,exports){
 module.exports = require('./lib/axios');

@@ -9,13 +9,16 @@ import {
   findRoot,
   forDirectory,
   collect,
+  saveFile,
+  saveFileMetadata,
 } from './api'
 
 import axios from 'axios'
 import * as UI from './ui'
 import {
   createAceContainer,
-  getAceHolder
+  getAceHolder,
+  getACETemplate
 } from './ace'
 import { updateAceEditor } from './ace'
 
@@ -108,7 +111,10 @@ const refreshData = async () => {
       }
     }
   }) 
-  if(!getState().params.folderid) window.location.hash = '#file/folderid/' + proj.id
+  const currentFolder = getCurrentFolder()
+  if(!currentFolder) {
+    window.location.hash = '#file/folderid/' + proj.id
+  }
   setState({loaded:true})  
 }
 
@@ -116,15 +122,9 @@ const loadEditor = debounce(200, async () => {
   await refreshData()
 })
 
-// The Ace editor container..
-let aceContainer = html`<div class="editor" id="editorHolder"
-  style=${`flex:1;height:${window.innerHeight}`}></div>`.onReady( (tpl) => {
-    const aceHolder = getAceHolder()
-    tpl.ids.editorHolder.appendChild( aceHolder.aceDOMContainer )
-  });
 
 const defaultEditor = ( (state) => {
-  return html`<div>${aceContainer}</div>`
+  return html`<div>${getACETemplate()}</div>`
 })
 
 const editorArea = (state) => {
@@ -143,27 +143,14 @@ const editorArea = (state) => {
   return html`
 <div style=${`flex:1;height:${window.innerHeight}`}>
   <div>
-    <button onclick=${async ()=>{
-      const currentFile = getCurrentFile()
-      if(currentFile) {
-        const res = await axios.post('/savefile/' + state.currentProject.id, {
-          path : currentFile.path,
-          content : currentFile.contents
-        })     
-      }
+    <button onclick=${async ()=>{      
+      await saveFile( getCurrentFile() )
     }}>Save Me!</button>
-
     <button onclick=${async ()=>{
-      
       const curr = getCurrentFile()
-      
-      const res = await axios.post('/savefile/' + state.currentProject.id, {
-        path : '/.fmeta/' + curr.path + '.fmeta',
-        content : JSON.stringify({
-          info : 'Saved info about ' + curr.name
-        })
-      })   
-      
+      saveFileMetadata( curr, {
+        ...getFileMetadata(curr),
+      })
     }}>Save info of current file</button>
 
     <button onclick=${async ()=>{

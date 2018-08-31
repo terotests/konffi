@@ -39,6 +39,13 @@ export const tablesView = (state) => {
     }, {}) );
 
     file.contents = JSON.stringify( state.data, null, 2 )
+
+    // find arrays of primitives...
+    let primitives = []
+    collect( file => file.name == 'primitives.json')
+    .forEach( file => {
+      primitives = [...primitives, ...JSON.parse( file.contents ) ]
+    })
     
     return html`
 <div>
@@ -54,18 +61,8 @@ export const tablesView = (state) => {
 
     <div>
       <button onclick=${()=>{
-        
-        // Adding new row...
         data.push({name:'new row', type:'string', required:'1'})
-        /*
-        setState({currentFile:{
-          ...file,
-          contents : JSON.stringify(data, null, 2)
-        }})
-        */
-
         setState({})
-
       }}>+ row</button>
     </div>
 
@@ -83,13 +80,30 @@ export const tablesView = (state) => {
         }}>x</button></td>
       
         ${fields.map( field=>{
-        // different editors for different types, but for now...
-        return html`<td><input value=${row[field]} onkeyup=${
-          (e) => {
-            row[field] = e.target.value
-            setState({})
+
+          // types from primitives, TODO: modularize
+          if(field === 'type') {
+            return html`<td>
+              <select onchange=${(e)=>{
+                row[field] = e.target.value
+              }}>
+              ${primitives.map( item => {
+                if(item.name ===row[field]) {
+                  return html`<option selected value=${item.name}>${item.name}</option>`
+                }
+                return html`<option value=${item.name}>${item.name}</option>`
+              })}
+              </select>
+            </td>`
           }
-        }/></td>`
+
+          // different editors for different types, but for now...
+          return html`<td><input value=${row[field]} onkeyup=${
+            (e) => {
+              row[field] = e.target.value
+              setState({})
+            }
+          }/></td>`
       })}</tr>`
     })}
     </table>

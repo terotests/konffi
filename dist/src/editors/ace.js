@@ -1,4 +1,8 @@
 "use strict";
+var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
+    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+    return cooked;
+};
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -43,7 +47,7 @@ exports.updateAceEditor = function (theFile) {
         return;
     aceState.fileid = theFile.id;
     var meta = api_1.getFileMetadata();
-    if (meta && meta.editor) {
+    if (meta && meta.editor && !meta.ace) {
         aceHolder.aceDOMContainer.style.display = 'none';
     }
     else {
@@ -97,4 +101,13 @@ aceEditor.getSession().on('change', function () {
         console.log(state);
     }
 });
+// The Ace editor container..
+var aceContainer = Doremifa.html(templateObject_1 || (templateObject_1 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
+    var aceHolder = exports.getAceHolder();
+    tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
+});
+exports.getACETemplate = function () {
+    return aceContainer;
+};
+var templateObject_1;
 //# sourceMappingURL=ace.js.map

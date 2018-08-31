@@ -20,8 +20,8 @@
     "required": "1"
   },
   {
-    "name": "new row",
-    "type": "string",
+    "name": "value",
+    "type": "double",
     "required": "1"
   }
 ]

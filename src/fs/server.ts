@@ -2,6 +2,11 @@
 import { FileContent, ServerFile, ServerProject } from '../model'
 import { read } from 'fs';
 
+export interface ServerOptions {
+  port : number,
+  path : string,
+}
+
 const ignore_folders = [
   'node_modules',
   '.git'
@@ -27,9 +32,8 @@ const mkdir = (path:string) => {
   }
 }
 
-const projects : ServerProject[] = [
-  {id:'1', name : 'konffi', full_path : '/Users/tero/dev/static/git/konffi/'}
-]
+const projects : ServerProject[] = []
+
 
 export async function getProjects() : Promise<ServerProject[]> {
   return projects
@@ -260,4 +264,36 @@ export async function saveProjectFile( project:ServerProject, path:string, conte
   const fsPath = require('path')
   await _saveProjectFile( project, path, content )
   return await _readProjectFile( project, path )
+}
+
+export function startServer( options:ServerOptions )  {
+
+  projects.push( {id:'1', name : 'project 1', full_path : options.path } )
+
+  const express = require('express');
+  const app = express();
+  app.use(express.json()); 
+  app.get('/files', async (req,res) => {
+    // return something
+    const data = await readFolder( process.cwd(), true )
+    res.json( data )
+  })
+  .get('/projects/', async (req, res) => {
+    res.json( await getProjects() )
+  })
+  // reading a project file
+  .post('/folder/:id', async (req, res) => {
+    const project = await findProject( req.params.id )
+    res.json( await readDir(project, req.body.path, true ) )
+  })
+  .post('/readfile/:id', async (req,res) => {
+    const project = await findProject( req.params.id )
+    res.json( await readProjectFile( project, req.body.path ) )
+  })
+  .post('/savefile/:id', async (req,res) => {
+    const project = await findProject( req.params.id )
+    res.json( await saveProjectFile( project, req.body.path, req.body.content ) )
+  })
+  app.use(express.static('static'))
+  app.listen(options.port)
 }

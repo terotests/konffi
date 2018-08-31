@@ -119,7 +119,7 @@ var debounce = function (delay, fn) {
     };
 };
 var refreshData = function () { return __awaiter(_this, void 0, void 0, function () {
-    var _a, projectList, proj;
+    var _a, projectList, proj, currentFolder;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0: return [4 /*yield*/, axios_1.default.get('/projects')];
@@ -140,8 +140,10 @@ var refreshData = function () { return __awaiter(_this, void 0, void 0, function
                         folder: proj
                     }, _a))
                 });
-                if (!getState().params.folderid)
+                currentFolder = api_1.getCurrentFolder();
+                if (!currentFolder) {
                     window.location.hash = '#file/folderid/' + proj.id;
+                }
                 setState({ loaded: true });
                 return [2 /*return*/];
         }
@@ -157,59 +159,36 @@ var loadEditor = debounce(200, function () { return __awaiter(_this, void 0, voi
         }
     });
 }); });
-// The Ace editor container..
-var aceContainer = html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"], ["<div class=\"editor\" id=\"editorHolder\"\n  style=", "></div>"])), "flex:1;height:" + window.innerHeight).onReady(function (tpl) {
-    var aceHolder = ace_1.getAceHolder();
-    tpl.ids.editorHolder.appendChild(aceHolder.aceDOMContainer);
-});
 var defaultEditor = (function (state) {
-    return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), aceContainer);
+    return html(templateObject_4 || (templateObject_4 = __makeTemplateObject(["<div>", "</div>"], ["<div>", "</div>"])), ace_1.getACETemplate());
 });
 var editorArea = function (state) {
     if (!state.loaded) {
-        return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
+        return html(templateObject_5 || (templateObject_5 = __makeTemplateObject(["<div>Loading...</div>"], ["<div>Loading...</div>"])));
     }
     var fileMeta = api_1.getFileMetadata();
     var editorName = (fileMeta && fileMeta.editor) || '';
     var editorFn = state.editors[editorName] || defaultEditor;
     // update the ace
     ace_2.updateAceEditor(api_1.getCurrentFile());
-    return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
-        ">Save Me!</button>\n\n    <button onclick=",
+    return html(templateObject_6 || (templateObject_6 = __makeTemplateObject(["\n<div style=", ">\n  <div>\n    <button onclick=", ">Save Me!</button>\n    <button onclick=", ">Save info of current file</button>\n\n    <button onclick=", " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "], ["\n<div style=", ">\n  <div>\n    <button onclick=",
+        ">Save Me!</button>\n    <button onclick=",
         ">Save info of current file</button>\n\n    <button onclick=",
         " >Refresh</button>\n\n  </div>\n  ", " \n</div>\n  "])), "flex:1;height:" + window.innerHeight, function () { return __awaiter(_this, void 0, void 0, function () {
-        var currentFile, res;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    currentFile = api_1.getCurrentFile();
-                    if (!currentFile) return [3 /*break*/, 2];
-                    return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
-                            path: currentFile.path,
-                            content: currentFile.contents
-                        })];
+                case 0: return [4 /*yield*/, api_1.saveFile(api_1.getCurrentFile())];
                 case 1:
-                    res = _a.sent();
-                    _a.label = 2;
-                case 2: return [2 /*return*/];
+                    _a.sent();
+                    return [2 /*return*/];
             }
         });
     }); }, function () { return __awaiter(_this, void 0, void 0, function () {
-        var curr, res;
+        var curr;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    curr = api_1.getCurrentFile();
-                    return [4 /*yield*/, axios_1.default.post('/savefile/' + state.currentProject.id, {
-                            path: '/.fmeta/' + curr.path + '.fmeta',
-                            content: JSON.stringify({
-                                info: 'Saved info about ' + curr.name
-                            })
-                        })];
-                case 1:
-                    res = _a.sent();
-                    return [2 /*return*/];
-            }
+            curr = api_1.getCurrentFile();
+            api_1.saveFileMetadata(curr, __assign({}, api_1.getFileMetadata(curr)));
+            return [2 /*return*/];
         });
     }); }, function () { return __awaiter(_this, void 0, void 0, function () {
         return __generator(this, function (_a) {
@@ -221,10 +200,10 @@ var editorArea = function (state) {
     });
 };
 exports.initialize = function () {
-    Doremifa.mount(document.body, function (state) { return html(templateObject_8 || (templateObject_8 = __makeTemplateObject(["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ", "\n    </div>\n    ", "\n  </div>"], ["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ",
+    Doremifa.mount(document.body, function (state) { return html(templateObject_7 || (templateObject_7 = __makeTemplateObject(["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ", "\n    </div>\n    ", "\n  </div>"], ["\n  <div style=\"display:flex;\">\n    <div class=\"filebrowser\">\n      ",
         "\n    </div>\n    ", "\n  </div>"])), Doremifa.router({
         file: showFolders
     }), editorArea(state)).onReady(loadEditor); });
 };
-var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7, templateObject_8;
+var templateObject_1, templateObject_2, templateObject_3, templateObject_4, templateObject_5, templateObject_6, templateObject_7;
 //# sourceMappingURL=main.js.map

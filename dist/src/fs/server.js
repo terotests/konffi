@@ -59,9 +59,7 @@ var mkdir = function (path) {
         }
     }
 };
-var projects = [
-    { id: '1', name: 'konffi', full_path: '/Users/tero/dev/static/git/konffi/' }
-];
+var projects = [];
 function getProjects() {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
@@ -351,4 +349,85 @@ function saveProjectFile(project, path, content) {
     });
 }
 exports.saveProjectFile = saveProjectFile;
+function startServer(options) {
+    var _this = this;
+    projects.push({ id: '1', name: 'project 1', full_path: options.path });
+    var express = require('express');
+    var app = express();
+    app.use(express.json());
+    app.get('/files', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, readFolder(process.cwd(), true)];
+                case 1:
+                    data = _a.sent();
+                    res.json(data);
+                    return [2 /*return*/];
+            }
+        });
+    }); })
+        .get('/projects/', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var _a, _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0:
+                    _b = (_a = res).json;
+                    return [4 /*yield*/, getProjects()];
+                case 1:
+                    _b.apply(_a, [_c.sent()]);
+                    return [2 /*return*/];
+            }
+        });
+    }); })
+        // reading a project file
+        .post('/folder/:id', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var project, _a, _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0: return [4 /*yield*/, findProject(req.params.id)];
+                case 1:
+                    project = _c.sent();
+                    _b = (_a = res).json;
+                    return [4 /*yield*/, readDir(project, req.body.path, true)];
+                case 2:
+                    _b.apply(_a, [_c.sent()]);
+                    return [2 /*return*/];
+            }
+        });
+    }); })
+        .post('/readfile/:id', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var project, _a, _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0: return [4 /*yield*/, findProject(req.params.id)];
+                case 1:
+                    project = _c.sent();
+                    _b = (_a = res).json;
+                    return [4 /*yield*/, readProjectFile(project, req.body.path)];
+                case 2:
+                    _b.apply(_a, [_c.sent()]);
+                    return [2 /*return*/];
+            }
+        });
+    }); })
+        .post('/savefile/:id', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var project, _a, _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0: return [4 /*yield*/, findProject(req.params.id)];
+                case 1:
+                    project = _c.sent();
+                    _b = (_a = res).json;
+                    return [4 /*yield*/, saveProjectFile(project, req.body.path, req.body.content)];
+                case 2:
+                    _b.apply(_a, [_c.sent()]);
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    app.use(express.static('static'));
+    app.listen(options.port);
+}
+exports.startServer = startServer;
 //# sourceMappingURL=server.js.map

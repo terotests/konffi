@@ -1,9 +1,27 @@
 import * as Doremifa from 'doremifa'
+import axios from 'axios'
 import { FileContent, ServerFile, ServerProject } from '../model'
 
 const html = Doremifa.html;
 const setState = Doremifa.setState
 const getState = Doremifa.getState
+
+export const saveFile = async (file?:ServerFile) : Promise<any> => {
+  if(!file) return null
+  return await axios.post('/savefile/' + getState().currentProject.id, {
+    path : file.path,
+    content : file.contents
+  })   
+}
+
+export const saveFileMetadata = async (file:ServerFile, metadata:any ) : Promise<any> => {
+  if(!file) return null
+  const state = getState()
+  return await axios.post('/savefile/' + state.currentProject.id, {
+    path : '/.fmeta/' + file.path + '.fmeta',
+    content : JSON.stringify(metadata, null, 2)
+  })     
+}
 
 // function to find certain files from the filesystem
 export const forFiles = (root:ServerFile, fn:(file:ServerFile) => void ) => {

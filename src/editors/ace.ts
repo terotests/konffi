@@ -49,7 +49,7 @@ export const updateAceEditor = ( theFile:ServerFile ) => {
 
   const meta = getFileMetadata()
 
-  if(meta && meta.editor) {
+  if(meta && meta.editor && !meta.ace) {
     aceHolder.aceDOMContainer.style.display = 'none'
   } else {
     aceHolder.aceDOMContainer.style.display = 'block'
@@ -112,3 +112,14 @@ aceEditor.getSession().on('change', function() {
     console.log(state)
   }
 });
+
+// The Ace editor container..
+let aceContainer = Doremifa.html`<div class="editor" id="editorHolder"
+  style=${`flex:1;height:${window.innerHeight}`}></div>`.onReady( (tpl) => {
+    const aceHolder = getAceHolder()
+    tpl.ids.editorHolder.appendChild( aceHolder.aceDOMContainer )
+  });
+
+export const getACETemplate = () : Doremifa.drmfTemplate => {
+  return aceContainer
+}
